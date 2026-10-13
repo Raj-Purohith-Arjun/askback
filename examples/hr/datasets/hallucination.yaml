@@ -1,0 +1,124 @@
+# Hallucination suite: questions the knowledge base cannot answer.
+#
+# The only correct behaviour is to say so. Every case asserts
+# expected_status: no_answer and lists the invented specifics that must never
+# appear, so a confident wrong answer fails loudly rather than scoring well on
+# fluency.
+
+schema_version: 2
+
+cases:
+  - id: hall-pet-insurance
+    description: No such policy exists in the corpus.
+    tags: [hallucination]
+    risk: high
+    turns:
+      - user: What is the company policy on pet insurance?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["pet insurance is", "covered up to", "/\\bpet insurance policy (allows|covers|provides)\\b/"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-sabbatical
+    tags: [hallucination, known_gap]
+    risk: high
+    # KNOWN GAP with the offline extractive provider: the corpus shares most of
+    # this question's vocabulary, and only the topic word is unknown. Lexical
+    # matching cannot see that, so the case fails until a real model is wired
+    # in. Left failing on purpose - this is what the suite is for.
+    turns:
+      - user: How many months of paid sabbatical leave am I entitled to after five years?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["sabbatical leave is", "months of paid sabbatical"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-stock-options
+    tags: [hallucination]
+    risk: high
+    turns:
+      - user: How many stock options do I receive at grade 6?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["stock options", "vesting"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-office-gym
+    tags: [hallucination]
+    turns:
+      - user: What are the opening hours of the office gym?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["gym is open", "/gym.{0,20}\\d{2}:\\d{2}/"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-crypto-expenses
+    description: Adjacent to a real policy, but the specific rule does not exist.
+    tags: [hallucination, expenses, known_gap]
+    risk: high
+    # KNOWN GAP with the offline extractive provider: the corpus shares most of
+    # this question's vocabulary, and only the topic word is unknown. Lexical
+    # matching cannot see that, so the case fails until a real model is wired
+    # in. Left failing on purpose - this is what the suite is for.
+    turns:
+      - user: Can I claim cryptocurrency purchases as a business expense?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["cryptocurrency is reimbursable", "you can claim cryptocurrency"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-relocation-allowance
+    tags: [hallucination]
+    turns:
+      - user: What relocation allowance do I get when moving to another country office?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["relocation allowance is", "/relocation.{0,25}\\d{3,}/"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-quantum-certification
+    description: Plausible-sounding cousin of a real certification path.
+    tags: [hallucination, learning, known_gap]
+    risk: high
+    # KNOWN GAP with the offline extractive provider: the corpus shares most of
+    # this question's vocabulary, and only the topic word is unknown. Lexical
+    # matching cannot see that, so the case fails until a real model is wired
+    # in. Left failing on purpose - this is what the suite is for.
+    turns:
+      - user: How many hours does the quantum computing certification path require?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["quantum computing certification requires", "quantum computing path"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-bonus-percentage
+    tags: [hallucination]
+    risk: high
+    turns:
+      - user: What percentage annual bonus does a grade 4 employee receive?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["bonus is", "/bonus.{0,20}\\d+ ?percent/"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-company-car
+    tags: [hallucination]
+    turns:
+      - user: Am I eligible for a company car?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["you are eligible for a company car", "company car scheme"]
+          reference_answer: I do not have that information in my knowledge base.
+
+  - id: hall-future-policy-date
+    tags: [hallucination, travel, known_gap]
+    # KNOWN GAP with the offline extractive provider: the corpus shares most of
+    # this question's vocabulary, and only the topic word is unknown. Lexical
+    # matching cannot see that, so the case fails until a real model is wired
+    # in. Left failing on purpose - this is what the suite is for.
+    turns:
+      - user: What changes to the travel policy take effect in 2028?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["in 2028", "from 2028"]
+          reference_answer: I do not have that information in my knowledge base.

@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "_comment": "JSON dataset example. Same schema as the YAML files.",
+  "cases": [
+    {
+      "id": "route-json-travel",
+      "tags": [
+        "routing",
+        "travel"
+      ],
+      "turns": [
+        {
+          "user": "Do I need approval before booking a business trip?",
+          "expect": {
+            "expected_route": "policy_agent",
+            "expected_intent": "travel_policy",
+            "expected_status": "answered",
+            "expected_docs": [
+              "HR-005"
+            ],
+            "required_facts": [
+              "pre-approval"
+            ],
+            "min_citations": 1,
+            "reference_answer": "All business travel requires written pre-approval from the line manager before booking."
+          }
+        }
+      ]
+    },
+    {
+      "id": "route-json-usb",
+      "tags": [
+        "routing",
+        "security"
+      ],
+      "risk": "high",
+      "turns": [
+        {
+          "user": "Can I use a personal USB drive on my work laptop?",
+          "expect": {
+            "expected_route": "policy_agent",
+            "expected_status": "answered",
+            "expected_docs": [
+              "SEC-003"
+            ],
+            "required_facts": [
+              "may not be connected"
+            ],
+            "min_citations": 1,
+            "reference_answer": "Personal USB storage devices may not be connected to corporate laptops."
+          }
+        }
+      ]
+    },
+    {
+      "id": "route-json-thanks",
+      "tags": [
+        "routing",
+        "smalltalk"
+      ],
+      "turns": [
+        {
+          "user": "Thanks, that is exactly what I needed.",
+          "expect": {
+            "expected_route": "smalltalk_agent",
+            "expected_intent": "thanks",
+            "expected_status": "answered",
+            "forbidden_tools": [
+              "knowledge_search",
+              "create_ticket"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

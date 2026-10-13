@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>askback dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#129302;</text></svg>">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<!-- Panels are plain sections; app.js shows one at a time. No framework, no
+     build step: this has to work from a container with no network. -->
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">askback</span>
+    <span class="brand-sub">dashboard</span>
+  </div>
+
+  <nav class="tabs" id="tabs" role="tablist">
+    <button class="tab" role="tab" data-panel="console">Console</button>
+    <button class="tab" role="tab" data-panel="evaluation">Evaluation</button>
+    <button class="tab" role="tab" data-panel="knowledge">Knowledge</button>
+    <button class="tab" role="tab" data-panel="routing">Routing</button>
+  </nav>
+
+  <div class="topbar-right">
+    <div class="engine-chip" id="engine-chip" title="Engine wiring">
+      <span class="dot" id="engine-dot"></span>
+      <span id="engine-summary">connecting…</span>
+    </div>
+    <button class="icon-btn" id="reload-engine" title="Rebuild the engine from the files on disk">Reload</button>
+    <button class="icon-btn" id="theme-toggle" title="Switch light / dark" aria-label="Switch theme">◐</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ─────────────────────────────────────────────────────────────── console -->
+<section class="panel" id="panel-console">
+  <div class="split">
+
+    <div class="chat-column">
+      <div class="chat-toolbar">
+        <label>as user
+          <input id="chat-user" value="dashboard" size="10">
+        </label>
+        <label>tenant
+          <select id="chat-tenant">
+            <option value="default">default</option>
+            <option value="acme">acme</option>
+          </select>
+        </label>
+        <button class="ghost-btn" id="chat-reset">Clear</button>
+      </div>
+
+      <div class="chat-log" id="chat-log" aria-live="polite"></div>
+
+      <div class="suggestions" id="suggestions"></div>
+
+      <form class="composer" id="composer">
+        <textarea id="chat-input" rows="1" placeholder="Ask something… (Enter to send, Shift+Enter for a new line)"></textarea>
+        <button class="primary-btn" type="submit" id="chat-send">Send</button>
+      </form>
+    </div>
+
+    <aside class="inspector" id="inspector">
+      <div class="empty-state">
+        <h3>Inspector</h3>
+        <p>Ask a question, or click any earlier reply, to see how the engine reached it: routing scores, retrieved passages, citations, tool calls and the safety verdict.</p>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────────── evaluation -->
+<section class="panel" id="panel-evaluation">
+  <div class="eval-layout">
+
+    <aside class="runs-rail">
+      <div class="rail-head">
+        <h3>Runs</h3>
+        <button class="ghost-btn" id="runs-refresh" title="Re-read the reports directory">↻</button>
+      </div>
+      <div class="runs-list" id="runs-list"></div>
+    </aside>
+
+    <div class="eval-main">
+      <div class="run-controls">
+        <div class="control-group">
+          <span class="control-label">Suites</span>
+          <div class="chip-row" id="suite-chips"></div>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Tags</span>
+          <div class="chip-row" id="tag-chips"></div>
+        </div>
+        <div class="control-actions">
+          <input id="run-name" placeholder="run name (optional)" size="18">
+          <button class="primary-btn" id="run-eval">Run evaluation</button>
+        </div>
+      </div>
+
+      <div id="eval-body">
+        <div class="empty-state">
+          <h3>No run loaded</h3>
+          <p>Pick a suite and run an evaluation, or select a past run from the left.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────────────────────────── knowledge -->
+<section class="panel" id="panel-knowledge">
+  <div class="editor-layout">
+
+    <aside class="doc-rail">
+      <div class="rail-head">
+        <h3>Documents</h3>
+      </div>
+      <input class="rail-filter" id="doc-filter" placeholder="Filter by id, title or domain…">
+      <div class="doc-list" id="doc-list"></div>
+      <div class="rail-foot" id="corpus-stats"></div>
+    </aside>
+
+    <div class="doc-editor" id="doc-editor">
+      <div class="empty-state">
+        <h3>Knowledge base</h3>
+        <p>Select a document to read it. The corpus is read-only here: edit the JSONL on disk and press Reload, and the next question sees the change.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ───────────────────────────────────────────────────────────────── routing -->
+<section class="panel" id="panel-routing">
+  <div class="routing-layout">
+
+    <div class="routing-main">
+      <div class="section-head">
+        <h3>Intent catalogue</h3>
+        <div class="view-switch" id="intents-view-switch">
+          <button class="seg active" data-view="table">Table</button>
+          <button class="seg" data-view="yaml">YAML</button>
+        </div>
+      </div>
+      <div id="intents-body"></div>
+    </div>
+
+    <aside class="route-tester">
+      <h3>Route tester</h3>
+      <p class="muted">Classify without answering. The fast loop when tuning keywords.</p>
+      <input id="route-input" placeholder="Type a question…">
+      <div id="route-result"></div>
+    </aside>
+
+  </div>
+</section>
+
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- Load order matters: core defines the helpers the other two use. -->
+<script src="/static/core.js"></script>
+<script src="/static/panels.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

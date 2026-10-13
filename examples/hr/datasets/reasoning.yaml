@@ -1,0 +1,152 @@
+# Reasoning validation: questions whose answer needs two or more facts combined.
+#
+# IMPORTANT, and deliberate: while the offline extractive provider is in use,
+# these cases assert that the *evidence needed to reason* is surfaced, not that
+# the conclusion is stated. The stub retrieves and quotes; it does not infer.
+#
+# When you connect a real model, tighten each case: move the derived conclusion
+# from reference_answer into required_facts. The cases are written so that is a
+# one-line edit per case, and the regression baseline will show the improvement.
+
+schema_version: 2
+
+cases:
+  - id: reason-cabin-class
+    description: Needs the 6-hour rule and the grade-5 rule together.
+    tags: [reasoning, travel]
+    risk: medium
+    turns:
+      - user: I am grade 5 and my flight is 9 hours. Which cabin class can I book?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-005]
+          required_facts: ["6 hours", "business class"]
+          min_citations: 1
+          reference_answer: >-
+            Flights over 6 hours may be booked in business class for employees at grade 5
+            and above, so a 9 hour flight at grade 5 can be booked in business class.
+
+  - id: reason-medical-certificate
+    tags: [reasoning, leave]
+    risk: medium
+    turns:
+      - user: My sickness absence lasted 4 working days. Do I need a medical certificate?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-002]
+          required_facts: ["3 consecutive working days"]
+          min_citations: 1
+          reference_answer: >-
+            Yes. A medical certificate is required for any sickness absence longer than
+            3 consecutive working days, and 4 days exceeds that.
+
+  - id: reason-second-attempt-reimbursement
+    tags: [reasoning, learning]
+    risk: medium
+    turns:
+      - user: I failed the certification exam once and passed on the second attempt. How much is reimbursed?
+        expect:
+          expected_route: learning_agent
+          expected_docs: [LRN-002]
+          required_facts: ["50 percent"]
+          min_citations: 1
+          reference_answer: >-
+            A second attempt is reimbursed at 50 percent, so half of the exam fee is
+            reimbursed.
+
+  - id: reason-late-expense
+    tags: [reasoning, expenses]
+    risk: high
+    turns:
+      - user: I paid for a client dinner 45 days ago. Can I still claim it?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-004]
+          required_facts: ["30 days"]
+          min_citations: 1
+          reference_answer: >-
+            No, not by default. Claims must be submitted within 30 days and later claims are
+            rejected automatically unless Finance grants a written exception.
+
+  - id: reason-notice-after-probation
+    description: Requires knowing probation is 6 months, so the post-probation rule applies.
+    tags: [reasoning, workplace]
+    risk: medium
+    turns:
+      - user: I joined 8 months ago. What notice period applies if I resign now?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-007]
+          required_facts: ["60 calendar days"]
+          min_citations: 1
+          reference_answer: >-
+            Probation lasts 6 months, so after 8 months the standard notice period of
+            60 calendar days applies.
+
+  - id: reason-carryover-limit
+    tags: [reasoning, leave]
+    risk: medium
+    turns:
+      - user: I have 6 unused annual leave days left. Can I carry all of them into next year?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-001]
+          required_facts: ["maximum of 5"]
+          min_citations: 1
+          reference_answer: >-
+            No. A maximum of 5 unused annual leave days may be carried over, so one day
+            would be lost.
+
+  - id: reason-professional-cert-prerequisites
+    # KNOWN GAP: "attempt" appears in this question and in the exam-retry
+    # document, so the lexical ranker prefers that passage over the prerequisite
+    # sentence. Word-sense disambiguation needs a model.
+    tags: [reasoning, learning, known_gap]
+    turns:
+      - user: What do I need before I can attempt the professional cloud certification?
+        expect:
+          expected_route: learning_agent
+          expected_docs: [LRN-003]
+          required_facts: ["80 hours", "2 years"]
+          min_citations: 1
+          reference_answer: >-
+            The professional stage requires approximately 80 hours of study and 2 years of
+            hands-on experience, and follows the foundation and associate stages.
+
+  - id: reason-p2-response-window
+    tags: [reasoning, it]
+    turns:
+      - user: A P2 incident was raised this morning. How long until the response target is missed?
+        expect:
+          expected_route: support_agent
+          expected_docs: [IT-006]
+          required_facts: ["4 hours"]
+          min_citations: 1
+          reference_answer: The response target for a P2 incident is 4 hours.
+
+  - id: reason-learning-budget-probation
+    tags: [reasoning, learning]
+    risk: medium
+    turns:
+      - user: I am still on probation. How much of the learning budget can I use?
+        expect:
+          expected_route: learning_agent
+          expected_docs: [LRN-001]
+          required_facts: ["500 units"]
+          min_citations: 1
+          reference_answer: >-
+            Employees in their probation period may use up to 500 units of the 1,500 unit
+            annual learning budget before probation is confirmed.
+
+  - id: reason-remote-core-hours
+    tags: [reasoning, workplace]
+    turns:
+      - user: If I work remotely on Tuesday, when do I still need to be reachable?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-006]
+          required_facts: ["10:00", "16:00"]
+          min_citations: 1
+          reference_answer: >-
+            Core collaboration hours are 10:00 to 16:00 local time, and every employee must
+            be reachable then, including on remote days.

@@ -1,0 +1,19 @@
+# Points `askback eval` at the toy agent. Everything not named here takes the
+# framework's default. Run it from the repository root.
+agent:
+  adapter: http
+  url: http://127.0.0.1:8123/chat
+  # Who each turn is sent as. A label with no entry here fails the case; it never
+  # falls back to anonymous. This agent has no authentication, so each is empty.
+  principal_headers:
+    default: {}
+    test_user: {}
+  # The tools of this agent that act on the world. It has none, and saying so is
+  # what makes the tool_side_effects check measurable. Left unset, that check
+  # fails every case as CRITICAL: nobody has said what is safe.
+  side_effecting_tools: []
+
+evaluation:
+  dataset_dir: examples/toy-agent/suites
+  reports_dir: examples/toy-agent/reports
+  default_suites: [faq]

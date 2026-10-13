@@ -1,0 +1,419 @@
+# Golden dataset: the answers the assistant must get right.
+#
+# A case needs an id and one turn; every expectation is optional.
+# See src/askback/datasets/schema.py.
+#   expected_route    which specialized agent must handle the turn
+#   expected_docs     evidence: the documents retrieval must surface
+#   required_facts    substrings that must appear in the reply (/regex/ also works)
+#   reference_answer  the ideal answer, used by the LLM-as-a-judge evaluator
+
+schema_version: 2
+
+cases:
+  # ------------------------------------------------------------------ policy #
+  - id: gold-leave-entitlement
+    description: Core leave entitlement.
+    tags: [policy, leave]
+    risk: medium
+    turns:
+      - user: How many days of annual leave do I get each year?
+        expect:
+          expected_route: policy_agent
+          expected_intent: leave_policy
+          expected_status: answered
+          expected_tools: [knowledge_search]
+          expected_docs: [HR-001]
+          required_facts: ["24 days"]
+          min_citations: 1
+          reference_answer: >-
+            Full-time employees receive 24 days of paid annual leave per calendar year,
+            accrued at 2 days per completed month of service. Part-time employees receive
+            a pro-rata entitlement.
+
+  - id: gold-leave-carryover
+    tags: [policy, leave]
+    turns:
+      - user: How many unused annual leave days can I carry over to next year?
+        expect:
+          expected_route: policy_agent
+          expected_intent: leave_policy
+          expected_status: answered
+          expected_docs: [HR-001]
+          required_facts: ["maximum of 5"]
+          min_citations: 1
+          reference_answer: >-
+            A maximum of 5 unused annual leave days may be carried over into the next
+            calendar year, and they expire on 31 March.
+
+  - id: gold-leave-parental-notice
+    tags: [policy, leave]
+    turns:
+      - user: How much notice must I give before parental leave starts?
+        expect:
+          expected_route: policy_agent
+          expected_intent: leave_policy
+          expected_status: answered
+          expected_docs: [HR-003]
+          required_facts: ["8 weeks"]
+          min_citations: 1
+          reference_answer: >-
+            Employees must give at least 8 weeks written notice before parental leave begins.
+
+  - id: gold-leave-parental-primary
+    tags: [policy, leave]
+    turns:
+      - user: How many weeks of parental leave does a primary caregiver get?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [HR-003]
+          required_facts: ["26 weeks"]
+          min_citations: 1
+          reference_answer: A primary caregiver is entitled to 26 weeks of paid parental leave.
+
+  - id: gold-sick-certificate
+    tags: [policy, leave]
+    turns:
+      - user: After how many days of sickness absence do I need a medical certificate?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [HR-002]
+          required_facts: ["3 consecutive working days"]
+          min_citations: 1
+          reference_answer: >-
+            A medical certificate is required for any sickness absence longer than
+            3 consecutive working days.
+
+  - id: gold-expense-deadline
+    tags: [policy, expenses]
+    risk: medium
+    turns:
+      - user: Within how many days must I submit an expense claim?
+        expect:
+          expected_route: policy_agent
+          expected_intent: expense_policy
+          expected_status: answered
+          expected_docs: [HR-004]
+          required_facts: ["30 days"]
+          min_citations: 1
+          reference_answer: >-
+            Expense claims must be submitted within 30 days of the date the expense was
+            incurred, and late claims are rejected automatically unless Finance grants an
+            exception.
+
+  - id: gold-expense-receipt
+    tags: [policy, expenses]
+    turns:
+      - user: Above what amount do I need a receipt for an expense?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [HR-004]
+          required_facts: ["25 units"]
+          min_citations: 1
+          reference_answer: A receipt is mandatory for every expense above 25 units of local currency.
+
+  - id: gold-travel-perdiem
+    tags: [policy, travel]
+    turns:
+      - user: What is the daily meal per diem for business travel?
+        expect:
+          expected_route: policy_agent
+          expected_intent: travel_policy
+          expected_status: answered
+          expected_docs: [HR-005]
+          required_facts: ["60 units"]
+          min_citations: 1
+          reference_answer: >-
+            The daily meal per diem for business travel is 60 units of local currency.
+
+  - id: gold-travel-cabin-class
+    tags: [policy, travel]
+    turns:
+      - user: When can I book business class instead of economy for a flight?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [HR-005]
+          required_facts: ["6 hours"]
+          min_citations: 1
+          reference_answer: >-
+            Flights under 6 hours must be booked in economy. Flights over 6 hours may be
+            booked in business class for employees at grade 5 and above.
+
+  - id: gold-remote-days
+    tags: [policy, workplace]
+    turns:
+      - user: How many days a week can I work remotely?
+        expect:
+          expected_route: policy_agent
+          expected_intent: workplace_policy
+          expected_status: answered
+          expected_docs: [HR-006]
+          required_facts: ["3 days"]
+          min_citations: 1
+          reference_answer: >-
+            Employees may work remotely for up to 3 days per week with line manager
+            approval, and must be reachable during core hours of 10:00 to 16:00.
+
+  - id: gold-probation-length
+    tags: [policy, workplace]
+    turns:
+      - user: How long is the probation period for new employees?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [HR-007]
+          required_facts: ["6 months"]
+          min_citations: 1
+          reference_answer: New employees serve a probation period of 6 months from their start date.
+
+  - id: gold-review-cycle
+    tags: [policy, performance]
+    turns:
+      - user: When do formal performance reviews take place?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [HR-008]
+          required_facts: ["March", "September"]
+          min_citations: 1
+          reference_answer: >-
+            Formal performance reviews take place twice a year, in March and in September,
+            and performance is rated on a 5-point scale.
+
+  - id: gold-gift-threshold
+    tags: [policy, conduct]
+    risk: medium
+    turns:
+      - user: Above what value must I declare a gift from a supplier?
+        expect:
+          expected_route: policy_agent
+          expected_intent: conduct_policy
+          expected_status: answered
+          expected_docs: [HR-009]
+          required_facts: ["50 units"]
+          min_citations: 1
+          reference_answer: >-
+            Gifts from suppliers or clients valued above 50 units of local currency must be
+            declared and cannot be accepted without written approval.
+
+  - id: gold-password-length
+    tags: [policy, security]
+    risk: high
+    turns:
+      - user: How long must an account password be?
+        expect:
+          expected_route: policy_agent
+          expected_intent: security_policy
+          expected_status: answered
+          expected_docs: [SEC-001]
+          required_facts: ["14 characters"]
+          min_citations: 1
+          reference_answer: >-
+            Account passwords must be at least 14 characters long and combine upper case,
+            lower case, numbers and symbols. Multi-factor authentication is mandatory.
+
+  - id: gold-incident-reporting
+    tags: [policy, security]
+    risk: high
+    turns:
+      - user: How quickly must I report a suspected security incident?
+        expect:
+          expected_route: policy_agent
+          expected_status: answered
+          expected_docs: [SEC-004]
+          required_facts: ["1 hour"]
+          min_citations: 1
+          reference_answer: >-
+            A suspected security incident must be reported to the security operations
+            centre within 1 hour of discovery.
+
+  # ---------------------------------------------------------------- learning #
+  - id: gold-learning-budget
+    tags: [learning, budget]
+    turns:
+      - user: What is my annual learning budget?
+        expect:
+          expected_route: learning_agent
+          expected_intent: learning_budget
+          expected_status: answered
+          expected_tools: [knowledge_search]
+          expected_docs: [LRN-001]
+          required_facts: ["1,500 units"]
+          min_citations: 1
+          reference_answer: >-
+            Every employee has an annual learning budget of 1,500 units of local currency,
+            which covers courses, certifications, books and conference tickets and expires
+            on 31 December.
+
+  - id: gold-learning-days
+    tags: [learning, budget]
+    turns:
+      - user: How many dedicated learning days do I get per year?
+        expect:
+          expected_route: learning_agent
+          expected_status: answered
+          expected_docs: [LRN-007]
+          required_facts: ["5 dedicated learning days"]
+          min_citations: 1
+          reference_answer: >-
+            Every employee is entitled to 5 dedicated learning days per calendar year, and
+            they do not reduce the annual leave entitlement.
+
+  - id: gold-certification-reimbursement
+    tags: [learning, certification]
+    turns:
+      - user: Is my certification exam fee reimbursed if I pass first time?
+        expect:
+          expected_route: learning_agent
+          expected_intent: certification
+          expected_status: answered
+          expected_docs: [LRN-002]
+          required_facts: ["100 percent"]
+          min_citations: 1
+          reference_answer: >-
+            Certification exam fees are reimbursed at 100 percent when the exam is passed on
+            the first attempt, and at 50 percent for a second attempt.
+
+  - id: gold-cloud-cert-associate
+    tags: [learning, certification]
+    turns:
+      - user: How many hours of study does the associate cloud certification stage need?
+        expect:
+          expected_route: learning_agent
+          expected_status: answered
+          expected_docs: [LRN-003]
+          required_facts: ["40 hours"]
+          min_citations: 1
+          reference_answer: >-
+            The associate stage of the cloud certification path requires approximately
+            40 hours of study and the foundation certification as a prerequisite.
+
+  - id: gold-mentoring-cadence
+    tags: [learning, mentoring]
+    turns:
+      - user: How often do a mentor and mentee meet?
+        expect:
+          expected_route: learning_agent
+          expected_intent: mentoring
+          expected_status: answered
+          expected_docs: [LRN-006]
+          required_facts: ["60 minutes"]
+          min_citations: 1
+          reference_answer: >-
+            Mentor and mentee meet one to one for at least 60 minutes every month, across a
+            6 month cycle.
+
+  - id: gold-course-cancellation
+    tags: [learning, courses]
+    turns:
+      - user: How late can I cancel an internal course booking for free?
+        expect:
+          expected_route: learning_agent
+          expected_status: answered
+          expected_docs: [LRN-008]
+          required_facts: ["48 hours"]
+          min_citations: 1
+          reference_answer: >-
+            Cancellation is free up to 48 hours before the course starts; later cancellation
+            counts as a no-show and blocks new enrolments for 30 days.
+
+  # ---------------------------------------------------------------------- IT #
+  - id: gold-laptop-refresh
+    tags: [it, hardware]
+    turns:
+      - user: How often are corporate laptops refreshed?
+        expect:
+          expected_route: support_agent
+          expected_intent: it_hardware
+          expected_status: answered
+          expected_docs: [IT-001]
+          required_facts: ["4 years"]
+          min_citations: 1
+          reference_answer: >-
+            Corporate laptops are refreshed every 4 years from the date of issue, and a
+            replacement is requested through the IT self-service portal.
+
+  - id: gold-software-sla
+    tags: [it, software]
+    turns:
+      - user: How long does a standard software request take to fulfil?
+        expect:
+          expected_route: support_agent
+          expected_intent: it_software
+          expected_status: answered
+          expected_docs: [IT-002]
+          required_facts: ["3 business days"]
+          min_citations: 1
+          reference_answer: Standard software requests are fulfilled within 3 business days.
+
+  - id: gold-vpn-session
+    tags: [it, access]
+    turns:
+      - user: How long does a VPN session last before I must re-authenticate?
+        expect:
+          expected_route: support_agent
+          expected_intent: it_access
+          expected_status: answered
+          expected_docs: [IT-003]
+          required_facts: ["12 hours"]
+          min_citations: 1
+          reference_answer: >-
+            A VPN session disconnects automatically after 12 hours and must be
+            re-authenticated. VPN access requires multi-factor authentication.
+
+  - id: gold-account-lockout
+    tags: [it, access]
+    turns:
+      - user: After how many failed sign-in attempts is my account locked?
+        expect:
+          expected_route: support_agent
+          expected_status: answered
+          expected_docs: [IT-004]
+          required_facts: ["5 consecutive failed"]
+          min_citations: 1
+          reference_answer: >-
+            An account is locked automatically after 5 consecutive failed sign-in attempts,
+            and unlocks automatically after 30 minutes.
+
+  - id: gold-service-desk-hours
+    tags: [it, support]
+    turns:
+      - user: What hours is the IT service desk open?
+        expect:
+          expected_route: support_agent
+          expected_intent: it_support
+          expected_status: answered
+          expected_docs: [IT-006]
+          required_facts: ["08:00", "20:00"]
+          min_citations: 1
+          reference_answer: >-
+            The IT service desk is open from 08:00 to 20:00 on weekdays, and P1 critical
+            incidents are handled 24 hours a day, 7 days a week.
+
+  # ------------------------------------------------------ routing behaviour #
+  - id: gold-greeting
+    description: Small talk must not trigger retrieval.
+    tags: [smalltalk]
+    turns:
+      - user: Hello, are you there?
+        expect:
+          expected_route: smalltalk_agent
+          expected_intent: greeting
+          expected_status: answered
+          forbidden_tools: [knowledge_search, create_ticket]
+
+  - id: gold-human-handoff
+    description: Explicit handoff must raise a ticket and report as escalated.
+    tags: [escalation]
+    risk: medium
+    turns:
+      - user: I want to speak to a human about my case
+        expect:
+          expected_route: escalation_agent
+          expected_intent: human_handoff
+          expected_status: escalated
+          expected_tools: [create_ticket]
+          required_facts: ["/TKT-[A-Z0-9]{8}/"]

@@ -1,0 +1,270 @@
+# SYNTHETIC calibration records.
+#
+# These ten records exist so `askback calibrate` can be run and tested. They
+# were written and labelled by Claude Code, not by anyone who owns an HR answer,
+# and the replies were composed by hand, not drawn from a run. They validate
+# NOTHING about the judge: a kappa computed from them says the command works,
+# not that the judge can be trusted. Every record says so (`synthetic: true`)
+# and the command repeats it in its output.
+#
+# The real set - 50 records from actual run output, labelled by someone from HR
+# who owns the answer - replaces this file. See docs/calibration.md.
+#
+# Layout: three clear passes, one reworded pass, four clear failures, and two
+# genuinely borderline records (marked BORDERLINE) where reasonable labellers
+# could disagree. Labels were fixed before any judge was run over the records
+# and were not adjusted afterwards.
+#
+# Facts are those of examples/hr/corpus/knowledge_base.jsonl so the retrieved context is
+# coherent, but no record depends on the corpus at run time.
+
+schema_version: 1
+
+# The judge whose run output the records were drawn from. Nobody's, for these:
+# the replies were composed by hand.
+labelled_against:
+  judge: synthetic
+  prompt_version: "1"
+
+records:
+  # ------------------------------------------------------------ clear passes #
+  - id: syn-pass-leave
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How many days of annual leave do I get each year?
+    reply: >-
+      Full-time employees receive 24 days of paid annual leave per calendar year,
+      accruing at 2 days per completed month of service.
+    reference_answer: >-
+      Full-time employees receive 24 days of paid annual leave per calendar year,
+      accrued at 2 days per completed month of service.
+    retrieved:
+      - doc_id: HR-001
+        title: Annual Leave Policy
+        text: >-
+          Full-time employees receive 24 days of paid annual leave per calendar
+          year. Annual leave accrues monthly at a rate of 2 days per completed
+          month of service.
+    labels:
+      correctness: acceptable
+      completeness: acceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable
+
+  - id: syn-pass-carryover
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How many unused annual leave days can I carry over?
+    reply: >-
+      A maximum of 5 unused annual leave days may be carried over into the next
+      calendar year, and they expire on 31 March.
+    reference_answer: >-
+      A maximum of 5 unused annual leave days may be carried over into the next
+      calendar year, and they expire on 31 March.
+    retrieved:
+      - doc_id: HR-001
+        title: Annual Leave Policy
+        text: >-
+          A maximum of 5 unused annual leave days may be carried over into the
+          next calendar year. Carried-over leave days expire on 31 March of the
+          following year.
+    labels:
+      correctness: acceptable
+      completeness: acceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable
+
+  - id: syn-pass-sick-leave
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: What do I need to do if I am off sick?
+    reply: >-
+      You are entitled to 12 days of paid sick leave per calendar year. Tell your
+      line manager before 10:00 on the first day of absence, and bring a medical
+      certificate if you are off for more than 3 consecutive working days.
+    reference_answer: >-
+      Notify your line manager before 10:00 on the first day of absence. A medical
+      certificate is required for sickness absence longer than 3 consecutive
+      working days. Employees have 12 days of paid sick leave per calendar year.
+    retrieved:
+      - doc_id: HR-002
+        title: Sick Leave Policy
+        text: >-
+          Employees are entitled to 12 days of paid sick leave per calendar year.
+          An employee must notify their line manager before 10:00 on the first day
+          of absence. A medical certificate is required for any sickness absence
+          longer than 3 consecutive working days.
+    labels:
+      correctness: acceptable
+      completeness: acceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable
+
+  - id: syn-pass-reworded
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How long is parental leave for the main carer?
+    reply: >-
+      The main carer gets half a year off on full pay, which is 26 weeks.
+    reference_answer: >-
+      A primary caregiver is entitled to 26 weeks of paid parental leave.
+    retrieved:
+      - doc_id: HR-003
+        title: Parental Leave Policy
+        text: A primary caregiver is entitled to 26 weeks of paid parental leave.
+    labels:
+      correctness: acceptable
+      completeness: acceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable
+
+  # ---------------------------------------------------------- clear failures #
+  - id: syn-fail-wrong-number
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How many days of annual leave do I get each year?
+    reply: Full-time employees receive 30 days of paid annual leave per calendar year.
+    reference_answer: >-
+      Full-time employees receive 24 days of paid annual leave per calendar year,
+      accrued at 2 days per completed month of service.
+    retrieved:
+      - doc_id: HR-001
+        title: Annual Leave Policy
+        text: >-
+          Full-time employees receive 24 days of paid annual leave per calendar
+          year. Annual leave accrues monthly at a rate of 2 days per completed
+          month of service.
+    labels:
+      correctness: unacceptable
+      completeness: acceptable
+      groundedness: unacceptable
+      reasoning: unacceptable
+      clarity: acceptable
+
+  - id: syn-fail-invented-policy
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: Can I take a sabbatical?
+    reply: >-
+      Yes. After five years of service you are entitled to a six-month paid
+      sabbatical, which you can request through the leave portal.
+    reference_answer: >-
+      The handbook has no sabbatical policy. Contact People Operations to ask
+      whether an arrangement is possible.
+    retrieved:
+      - doc_id: HR-001
+        title: Annual Leave Policy
+        text: >-
+          Full-time employees receive 24 days of paid annual leave per calendar
+          year. Every annual leave request requires line manager approval.
+    labels:
+      correctness: unacceptable
+      completeness: unacceptable
+      groundedness: unacceptable
+      reasoning: unacceptable
+      clarity: acceptable
+
+  - id: syn-fail-incomplete
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: What do I need to do if I am off sick?
+    reply: Tell your line manager.
+    reference_answer: >-
+      Notify your line manager before 10:00 on the first day of absence. A medical
+      certificate is required for sickness absence longer than 3 consecutive
+      working days.
+    retrieved:
+      - doc_id: HR-002
+        title: Sick Leave Policy
+        text: >-
+          An employee must notify their line manager before 10:00 on the first day
+          of absence. A medical certificate is required for any sickness absence
+          longer than 3 consecutive working days.
+    labels:
+      correctness: acceptable
+      completeness: unacceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable
+
+  - id: syn-fail-garbled
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How many unused annual leave days can I carry over?
+    reply: leave days carry 5 maybe unused the march and
+    reference_answer: >-
+      A maximum of 5 unused annual leave days may be carried over into the next
+      calendar year, and they expire on 31 March.
+    retrieved:
+      - doc_id: HR-001
+        title: Annual Leave Policy
+        text: >-
+          A maximum of 5 unused annual leave days may be carried over into the
+          next calendar year. Carried-over leave days expire on 31 March of the
+          following year.
+    labels:
+      correctness: unacceptable
+      completeness: unacceptable
+      groundedness: acceptable
+      reasoning: unacceptable
+      clarity: unacceptable
+
+  # ------------------------------------------------------------- borderline #
+  # BORDERLINE: "within about a month" is a fair gloss of 30 days, and an unfair
+  # one in HR, where a figure is not paraphrasable (CLAUDE.md section 7). Labelled
+  # by that rule; a looser labeller would call correctness acceptable.
+  - id: syn-borderline-approximate-number
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How long do I have to submit an expense claim?
+    reply: >-
+      Expense claims should be submitted within about a month of the expense date.
+    reference_answer: >-
+      Expense claims must be submitted within 30 days of the expense date.
+    retrieved:
+      - doc_id: HR-010
+        title: Expenses Policy
+        text: Expense claims must be submitted within 30 days of the expense date.
+    labels:
+      correctness: unacceptable
+      completeness: acceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable
+
+  # BORDERLINE: the figure is right and supported. The closing sentence is advice
+  # nobody asked for and nothing in the context backs, but it asserts no policy.
+  # Labelled acceptable; a strict labeller would mark groundedness unacceptable.
+  - id: syn-borderline-unsupported-aside
+    synthetic: true
+    labeller: SYNTHETIC (Claude Code; not an HR owner)
+    date: 2026-10-10
+    user: How long is parental leave for the main carer?
+    reply: >-
+      A primary caregiver is entitled to 26 weeks of paid parental leave. Many
+      people find it helpful to start planning early.
+    reference_answer: >-
+      A primary caregiver is entitled to 26 weeks of paid parental leave.
+    retrieved:
+      - doc_id: HR-003
+        title: Parental Leave Policy
+        text: A primary caregiver is entitled to 26 weeks of paid parental leave.
+    labels:
+      correctness: acceptable
+      completeness: acceptable
+      groundedness: acceptable
+      reasoning: acceptable
+      clarity: acceptable

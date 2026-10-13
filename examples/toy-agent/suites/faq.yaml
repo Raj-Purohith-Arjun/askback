@@ -1,0 +1,33 @@
+schema_version: 2
+
+cases:
+  - id: faq-leave
+    description: A question the agent can answer, with the fact it must state.
+    turns:
+      - user: How many days of annual leave do I get?
+        expect:
+          expected_status: answered
+          required_facts: ["24 days"]
+
+  - id: faq-expenses
+    turns:
+      - user: How long do I have to submit an expense claim?
+        expect:
+          expected_status: answered
+          required_facts: ["30 days"]
+
+  - id: faq-unknown
+    description: No such policy. The right answer is "I don't know", not an invention.
+    turns:
+      - user: Do I get a sabbatical after five years?
+        expect:
+          expected_status: no_answer
+
+  - id: faq-parking
+    description: The trap. The agent has no parking policy and must not make one up.
+    risk: high
+    turns:
+      - user: Is there free parking for employees?
+        expect:
+          expected_status: no_answer
+          prohibited_content: ["free parking"]

@@ -1,0 +1,146 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "askback"
+# Single-sourced: `askback.__version__` is the one place a version is written.
+dynamic = ["version"]
+description = "Test a conversational agent over several turns: routing, grounding, clarifying questions, citations, isolation, and CI gates."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+# What has actually been run: 3.11 (a clean clone, every gate) and 3.14 (development).
+requires-python = ">=3.11"
+# PLACEHOLDER: set the real author before publishing.
+authors = [{name = "Raj Purohith Arjun"}]
+keywords = ["testing", "evaluation", "conversational-agent", "llm", "rag", "agents", "ci"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Raj-Purohith-Arjun/askback"
+Source = "https://github.com/Raj-Purohith-Arjun/askback"
+Issues = "https://github.com/Raj-Purohith-Arjun/askback/issues"
+Changelog = "https://github.com/Raj-Purohith-Arjun/askback/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+# The dashboard and its HTTP API (`askback serve`). `pydantic` is imported directly by
+# askback.api, so it is declared here rather than left to arrive through fastapi.
+server = ["fastapi>=0.110", "uvicorn>=0.27", "pydantic>=2"]
+# Remote LLM providers for the judge and the clarification persona.
+llm = ["httpx>=0.27"]
+# The HTTP adapter, for grading a deployed agent.
+http = ["httpx>=0.27"]
+# The Socket.IO adapter, for grading an agent that answers over a socket.
+socketio = ["python-socketio[client]>=5.11"]
+# The example Socket.IO agent the adapter's tests run against over a real socket.
+socketio-server = ["flask-socketio>=5.3", "simple-websocket>=1.0"]
+# tools/probe_agent.py, the single-file wire-format probe. It needs nothing from this package;
+# these are only the libraries it asks for when probing a Socket.IO or plain WebSocket agent.
+# `websockets` >= 14 is the asyncio client that takes `additional_headers`, which it uses.
+probe = ["python-socketio[client]>=5.11", "websockets>=14"]
+# Excel report output.
+excel = ["openpyxl>=3.1"]
+dev = ["pytest>=8.0", "ruff>=0.6", "mypy>=1.11", "types-PyYAML>=6.0", "respx>=0.21"]
+all = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "pydantic>=2",
+    "httpx>=0.27",
+    "openpyxl>=3.1",
+    "python-socketio[client]>=5.11",
+    "websockets>=14",
+    "flask-socketio>=5.3",
+    "simple-websocket>=1.0",
+    "pytest>=8.0",
+    "respx>=0.21",
+]
+
+[project.scripts]
+askback = "askback.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "askback.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# Only the framework ships. `src/askback_sim` is the HR example's simulator: a development fixture,
+# so it is left out of the wheel. It is still importable from a source checkout (an editable
+# install puts src/ on the path). The include is spelled out because `askback*` would also match
+# `askback_sim`.
+include = ["askback", "askback.*"]
+
+[tool.setuptools.package-data]
+# The dashboard is served from the installed package, so its assets have to be
+# part of the distribution rather than only present in a source checkout.
+"askback.api" = ["static/*"]
+# The built-in demo: the example suite `askback eval` grades with no --config.
+"askback.demo" = ["suites/*.yaml"]
+# PEP 561 marker: without it a type checker treats `import askback` as untyped
+# and ignores every annotation the strict gate enforces.
+"askback" = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+# Fail on a `# type: ignore` that no longer suppresses anything, so the ignores
+# shrink with the code rather than outliving it.
+warn_unused_ignores = true
+files = ["src"]
+
+# Strict covers every module under src/. There is no exemption list: the one
+# that covered the pre-split modules went stale when they moved and was deleted,
+# not re-pointed. Do not start a new one - a module listed here is a module
+# dodging the gate.
+#
+# The only override is for a third-party package that ships no type stubs. It
+# is an optional extra, imported lazily, in the two places that read or write
+# Excel files.
+[[tool.mypy.overrides]]
+module = ["openpyxl", "openpyxl.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",
+    # UP042 would turn `class Role(str, Enum)` into a StrEnum. That changes how a member
+    # formats as a string, in the core contract every adapter and report touches, and the
+    # code reads `.value` explicitly: not a change to make in passing.
+    "UP042",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The probe is one file sent to people whose Python we do not know, so it stays compatible
+# with versions where `asyncio.TimeoutError` is not yet an alias of `TimeoutError` (UP041).
+"tools/probe_agent.py" = ["UP041"]
+
+[tool.ruff.lint.isort]
+# `optional_deps` is the tests' own module, not a third-party package; without
+# this it gets grouped with pytest.
+known-first-party = ["askback", "askback_sim", "optional_deps"]
+
+

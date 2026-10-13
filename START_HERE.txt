@@ -1,0 +1,49 @@
+ASKBACK
+=========
+
+A test tool for conversational agents: it drives your agent through multi-turn test
+conversations, grades every reply, and turns the result into an exit code for CI.
+
+This folder also holds an HR-assistant SIMULATOR and a dashboard for it. They are a worked
+example, not the product: README.md is about testing YOUR agent.
+
+
+QUICK START
+-----------
+
+  Windows          Mac / Linux            What it does
+  ---------------  ---------------------  ------------------------------------------------
+  setup.bat        bash setup.sh          Install (once, needs internet)
+  verify.bat       bash verify.sh         Check it works
+  start.bat        bash start.sh          Open the dashboard for the HR example
+
+On Windows you can just double-click the .bat files.
+If you type them in a terminal instead, use the .\ prefix:  .\setup.bat
+
+Then open http://localhost:8000 in your browser (start.bat opens it for you).
+
+To test your own agent you do not need any of this: see README.md.
+
+
+READ THIS FIRST
+---------------
+
+  README.md             What it is, whether it fits your agent, how to point it at one.
+  GETTING_STARTED.md    A walk through the dashboard and the HR example, step by step.
+  examples/hr/README.md Why the HR example is red.
+
+
+REQUIREMENTS
+------------
+
+  Python 3.11 or newer.  Check with:  python --version
+  Get it from https://www.python.org/downloads/
+  On Windows, tick "Add Python to PATH" during install.
+
+
+ONE THING THAT LOOKS LIKE A BUG BUT IS NOT
+------------------------------------------
+
+verify runs three things. The tests pass. The built-in example suite passes. Then the HR
+example runs and FAILS some cases, on purpose: that simulator has real flaws and the suites
+exist to catch them. examples/hr/README.md says which ones.

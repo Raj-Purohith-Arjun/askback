@@ -1,0 +1,5 @@
+id,message,expected_route,expected_status,expected_docs,required_facts,min_citations,tags,risk
+smoke-csv-mfa,Is multi-factor authentication mandatory?,policy_agent,answered,SEC-001,mandatory for every employee,1,"smoke,security",high
+smoke-csv-ticket-timeout,How long before an unanswered ticket is closed automatically?,support_agent,answered,IT-006,5 business days,1,"smoke,it",low
+smoke-csv-waitlist,What happens if an internal course has no seats left?,learning_agent,answered,LRN-008,waitlist,1,"smoke,learning",low
+smoke-csv-leaver-access,When is system access revoked for someone leaving?,support_agent,answered,IT-005,final working day,1,"smoke,it",medium

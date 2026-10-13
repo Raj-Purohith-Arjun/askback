@@ -1,0 +1,151 @@
+# RAG evaluation: is the right evidence retrieved, and is the answer built on it?
+#
+# These cases lean on expected_docs (evidence) and min_citations. The RAG
+# evaluator additionally scores retrieval rank, citation support and
+# groundedness on every case here, with no extra configuration.
+
+schema_version: 2
+
+cases:
+  - id: rag-leave-evidence
+    tags: [rag, policy]
+    turns:
+      - user: What is the annual leave accrual rate per month?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-001]
+          required_facts: ["2 days per completed month"]
+          min_citations: 1
+          reference_answer: Annual leave accrues monthly at a rate of 2 days per completed month of service.
+
+  - id: rag-grievance-timeline
+    tags: [rag, policy]
+    turns:
+      - user: How long does HR take to acknowledge a grievance?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [HR-010]
+          required_facts: ["5 business days"]
+          min_citations: 1
+          reference_answer: >-
+            People Operations acknowledges every grievance within 5 business days of
+            receipt, and targets resolution within 20 business days.
+
+  - id: rag-data-classification
+    tags: [rag, security]
+    turns:
+      - user: What are the data classification levels?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [SEC-002]
+          required_facts: ["public", "internal", "confidential", "restricted"]
+          min_citations: 1
+          reference_answer: >-
+            Information is classified as public, internal, confidential or restricted.
+            Confidential data must be encrypted at rest and in transit.
+
+  - id: rag-password-rotation
+    tags: [rag, security]
+    turns:
+      - user: How often must passwords be rotated?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [SEC-001]
+          required_facts: ["180 days"]
+          min_citations: 1
+          reference_answer: Passwords must be rotated every 180 days, and the previous 10 may not be reused.
+
+  - id: rag-curriculum-modules
+    tags: [rag, learning]
+    turns:
+      - user: Which modules make up the data and AI curriculum?
+        expect:
+          expected_route: learning_agent
+          expected_docs: [LRN-004]
+          required_facts: ["Python foundations", "SQL and data modelling", "machine learning foundations"]
+          min_citations: 1
+          reference_answer: >-
+            The data and AI curriculum has four modules: Python foundations, SQL and data
+            modelling, machine learning foundations, and applied generative AI. A capstone
+            project is mandatory.
+
+  - id: rag-leadership-cohort
+    tags: [rag, learning]
+    turns:
+      - user: How many participants are in a leadership development cohort?
+        expect:
+          expected_route: learning_agent
+          expected_docs: [LRN-005]
+          required_facts: ["20 participants"]
+          min_citations: 1
+          reference_answer: >-
+            The leadership development programme runs for 6 months and admits a cohort of
+            20 participants, entered by line manager nomination.
+
+  - id: rag-access-recertification
+    tags: [rag, it]
+    turns:
+      - user: How often are system access rights recertified?
+        expect:
+          expected_route: support_agent
+          expected_docs: [IT-005]
+          required_facts: ["quarterly"]
+          min_citations: 1
+          reference_answer: >-
+            All access rights are recertified quarterly by the line manager, and access that
+            is not recertified is revoked at the end of the quarter.
+
+  - id: rag-p1-response
+    tags: [rag, it]
+    turns:
+      - user: What is the response target for a P1 incident?
+        expect:
+          expected_route: support_agent
+          expected_docs: [IT-006]
+          required_facts: ["15 minutes"]
+          min_citations: 1
+          reference_answer: >-
+            The response target is 15 minutes for a P1 incident, 4 hours for a P2 and
+            1 business day for a P3.
+
+  - id: rag-unapproved-software
+    tags: [rag, it]
+    turns:
+      - user: How long does a security review take for software not in the catalogue?
+        expect:
+          expected_route: support_agent
+          expected_docs: [IT-002]
+          required_facts: ["15 business days"]
+          min_citations: 1
+          reference_answer: >-
+            Software that is not in the approved catalogue requires an Information Security
+            review, which takes up to 15 business days.
+
+  - id: rag-multi-doc-leave-and-learning
+    description: The answer lives in the learning corpus, not the leave corpus.
+    tags: [rag, learning]
+    turns:
+      - user: Do learning days reduce my annual leave entitlement?
+        expect:
+          expected_route: learning_agent
+          expected_docs: [LRN-007]
+          required_facts: ["do not reduce the annual leave entitlement"]
+          min_citations: 1
+          reference_answer: Learning days do not reduce the annual leave entitlement.
+
+  - id: rag-tenant-scoped-visible
+    description: An Acme user must be able to read Acme documents.
+    tenant_id: acme
+    user_id: acme_user
+    tags: [rag, tenancy]
+    risk: high
+    turns:
+      - user: What is the compensation band for Acme grade 5 engineers?
+        expect:
+          expected_route: policy_agent
+          expected_docs: [ACME-001]
+          required_facts: ["96,000"]
+          min_citations: 1
+          reference_answer: >-
+            Acme grade 5 engineers are paid between 96,000 and 118,000 units of local
+            currency.

@@ -1,0 +1,179 @@
+# A starting point for grading YOUR agent. Copy it, edit the `agent:` block, and run:
+#
+#     askback --config my-config.yaml eval
+#
+# Nothing here names a suite and nothing sets a pass floor: a config you copy must not trip a
+# gate on suites you do not have. Add `suite_must_pass` below once you have suites worth guarding.
+#
+# Every value supports ${ENV_VAR:default}. Secrets belong in the environment, never in this file.
+# askback does not read a .env file; export the variables yourself (see .env.example).
+
+agent:
+  # The system under test. Pick one adapter.
+  #
+  #   http      POST a JSON body, read a JSON reply. Needs:  pip install "askback[http]"
+  #   socketio  a Socket.IO server (events, namespace).    pip install "askback[socketio]"
+  #             Copy the `agent:` block of examples/socketio-agent/config.yaml for this one.
+  #   (your own) implement AgentAdapter in Python; see docs/writing-an-adapter.md.
+  adapter: http
+  url: ${AGENT_URL:}            # required. An empty value is refused by name.
+  # Where the message and session id go in the request, and where each field of the reply lives.
+  # Only `text` is required in response_mapping; the rest switch on the checks that need them.
+  request_template: {message: "{message}", session_id: "{session_id}"}
+  response_mapping:
+    text: reply
+    # status: outcome            # answered | no_answer | refused | escalated
+    # route: agent.name          # which specialist took the turn
+    # citations: sources         # a list of {doc_id, snippet}
+    # retrieved: chunks          # a list of {doc_id, text}: the passages the agent read
+    # tools: tool_calls          # a list of tool names or {name, ok}
+  # Who each turn is sent as. A case's `user_id` is looked up here, and an unknown label is
+  # refused: it never falls back to anonymous, because an isolation case that ran as the
+  # wrong user would pass for the wrong reason. An unset ${VAR} here is refused by name.
+  principal_headers:
+    default: {}
+    # default: {Authorization: "Bearer ${AGENT_TOKEN}"}
+    # test_user: {Authorization: "Bearer ${AGENT_TOKEN}"}
+  # The tools of YOUR agent that act on the world (refund, book, ticket, email, write).
+  #   unset  nothing is declared, and the tool_side_effects check FAILS every case as CRITICAL:
+  #          it will not pass on a list nobody wrote.
+  #   []     a statement that no tool has side effects. The check can then pass.
+  side_effecting_tools: []
+
+evaluation:
+  dataset_dir: suites            # a file or a directory of YAML/JSON/CSV/XLSX suites
+  reports_dir: reports
+  # How much text a report file carries. Overridden per run by `eval --redaction`.
+  #   ci            the default. No PII match, no credential match and no retrieved chunk.
+  #                 Replies are kept as a 200-character excerpt that MAY contain internal
+  #                 content: an agent that answers from its corpus is quoting it.
+  #   metrics_only  verdicts, scores, check names and ids. No text at all. Choose this where
+  #                 the answer itself is the sensitive thing (health, finance, HR).
+  #   full          everything, for debugging on your own machine. Refused when CI is set.
+  redaction: ci
+  baseline_path: baselines/baseline.json
+  # A case passes when its weighted score reaches this value.
+  pass_threshold: 0.7
+  # How often a case that does not declare `samples` is run, each in a fresh session. Leave it
+  # at 1 until you are measuring flakiness: raising it multiplies run time and cost by N.
+  default_samples: 1
+  # A run passes when this share of cases pass.
+  suite_pass_rate: 0.8
+  # Per-suite floors, checked independently of the global rate. The risky suites are small, so
+  # a large easy suite can hold the global rate up while they rot. A suite named here that did
+  # not run is an error (exit 2), never a pass. None are set: add yours by suite name.
+  # suite_must_pass:
+  #   safety: 1.0
+  # Regression gate: a candidate may not drop more than this below the baseline.
+  regression_tolerance: 0.05
+  parallel_workers: ${ASKBACK_EVAL_WORKERS:4}
+  weights:
+    rule_based: 1.0
+    rag: 1.0
+    safety: 1.5
+    llm_judge: 1.0
+
+  # Who grades semantic quality. With no `llm` the offline heuristic judge grades: a lexical
+  # proxy, deterministic and free. A model judge is METERED and sees each graded question,
+  # reference answer and reply, so it is worth choosing where those go.
+  #
+  # The judge has its own model and its own credentials (JUDGE_-prefixed), never the agent's.
+  # If one is configured and cannot run, the run stops instead of grading with the heuristic.
+  # Changing the judge changes every score: re-save the baseline afterwards.
+  judge:
+    # 1. A model you run yourself: vLLM, Ollama, LiteLLM, a company gateway. Nothing leaves your
+    #    network, and no API key is needed or sent unless you set one. Start here.
+    # llm:
+    #   provider: openai
+    #   base_url: ${JUDGE_OPENAI_BASE_URL:http://localhost:11434/v1}
+    #   model: ${JUDGE_OPENAI_MODEL:llama3}
+    #   temperature: 0.0
+    #
+    # 2. OpenAI itself (JUDGE_OPENAI_API_KEY in the environment):
+    # llm:
+    #   provider: openai
+    #   model: gpt-4o-mini
+    #
+    # 3. Azure OpenAI:
+    # llm:
+    #   provider: azure_openai
+    #   endpoint: ${JUDGE_AZURE_OPENAI_ENDPOINT:}
+    #   deployment: ${JUDGE_AZURE_OPENAI_DEPLOYMENT:}
+    #   api_version: "2024-10-21"
+    #
+    # 4. Anthropic (JUDGE_ANTHROPIC_API_KEY in the environment). Name the model yourself: there
+    #    is deliberately no default.
+    # llm:
+    #   provider: anthropic
+    #   model: ${JUDGE_ANTHROPIC_MODEL:}
+
+    # The settings below apply only to a model judge.
+    #
+    # If a judge call fails, that response is graded by the heuristic and marked degraded,
+    # never blended in unmarked. The run fails (exit 3) when more responses than this degraded.
+    max_degraded: 0
+    # Stop the run, with exit 3 and no verdict, once the judge has spent more than this many
+    # dollars. Uses the prices below, so with prices left at 0 it never trips.
+    # budget_usd: 5.00
+    # Your model's price per 1,000 tokens. Estimates, not an invoice. A self-hosted model can
+    # honestly stay at 0.
+    price_per_1k_prompt: 0
+    price_per_1k_completion: 0
+    # `calibrate` exits 1 when the judge's agreement (Cohen's kappa) with your human labels is
+    # below this. Under ~0.6 the judge is not fit to gate a merge. A new judge model or prompt
+    # version voids the last result. See docs/calibration.md.
+    min_kappa: 0.6
+    # Verdicts are cached on (system prompt, user prompt, model, prompt version), so re-running
+    # an unchanged suite costs nothing. Scores only: never the judge's reasoning.
+    cache_path: .cache/judge
+    # `calibrate` reads human-labelled records from here (or from --records):
+    # calibration_records: calibration/records.yaml
+
+  evaluator_options:
+    pii_egress:
+      # Which kinds of personal data fail a reply. The default is every category except
+      # `salary_figure`, which reads a pay word near an amount of 1,000 or more as a salary and
+      # fails ordinary text like "you paid $1,299". List it (with the rest) if your agent talks
+      # about pay:
+      # categories: [email, phone, us_ssn, uk_nino, iban, credit_card, salary_figure]
+    llm_judge:
+      # The offline judge scores by word overlap, which is harsher than a model on answers that
+      # are correct but worded differently. Raise this to ~0.7 with a real model, then re-save
+      # the baseline.
+      threshold: 0.55
+    rag:
+      # Share of reply sentences that must be supported by retrieved text.
+      groundedness_threshold: 0.6
+      sentence_support_threshold: 0.55
+
+  # Citation existence. A turn that sets `expect.verify_citations: true` has the chapters, pages
+  # and document names its reply cites resolved against a manifest of the source document that
+  # you keep by hand (name, aliases, total_pages, chapters with pages). It proves the agent
+  # cited something that exists, NOT that the passage supports the claim. With no manifest a
+  # turn that asks is skipped, never passed.
+  # citations:
+  #   manifest: manifests/handbook.yaml
+
+  # Clarifying questions. Every reply is classified as a question or an answer by a free,
+  # deterministic detector; a question is answered up to the turn's `clarification.max_rounds`
+  # and the turn is graded on the last reply. Needed only for suites using schema_version 3
+  # `clarification` or `persona`.
+  # clarification:
+  #   detector:
+  #     threshold: 0.5            # score at or above which a reply is a question
+  #     weights: {has_citations: -0.6, trailing_question: 0.4}    # 0 switches a signal off
+  #     greeting_words: []        # extra words that make a user message "asked for nothing"
+  #   # The simulated user for cases with a `persona`. Reads PERSONA_-prefixed variables only,
+  #   # and its spend is reported apart from the judge's.
+  #   persona:
+  #     llm: {provider: openai, base_url: "http://localhost:11434/v1", model: llama3}
+
+safety:
+  # PII egress is a gate that checks every reply. This list is the EXCEPTION: regexes that must
+  # match a whole detected value, for personal data that is legitimately published. Every entry
+  # needs a comment saying why that value is safe to show. A broad pattern switches the gate
+  # off for everything it matches.
+  pii_allowlist: []
+
+logging:
+  level: ${ASKBACK_LOG_LEVEL:INFO}

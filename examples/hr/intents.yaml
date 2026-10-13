@@ -1,0 +1,196 @@
+# Intent catalogue for the FrontLine agent.
+#
+# Each entry maps an intent to the specialized agent that should answer it.
+# The classifier scores keywords (60%) and example similarity (40%); the winning
+# intent must beat routing.threshold in examples/hr/config.yaml or the turn falls back.
+#
+# Tuning tips:
+#   - keywords    distinctive words or phrases. Two matches already score full marks.
+#                 Plain words match whole tokens (plurals are folded); anything
+#                 with a space or hyphen matches as a phrase.
+#   - examples    real user phrasings. The cheapest way to fix a misroute.
+#   - priority    multiplier for breaking ties between overlapping intents.
+#
+# When a question lands on fallback_agent that should not have, add the missing
+# word here first. Editing this file is the intended way to tune routing.
+
+intents:
+  # --------------------------------------------------------------- small talk #
+  - name: greeting
+    route: smalltalk_agent
+    description: A greeting or opening pleasantry.
+    keywords: [hello, hi, hey, "good morning", "good afternoon", greetings]
+    examples:
+      - "hello there"
+      - "hi, are you available"
+      - "good morning"
+
+  - name: thanks
+    route: smalltalk_agent
+    description: The user is thanking the assistant.
+    keywords: [thanks, thank, appreciated, cheers]
+    examples:
+      - "thanks a lot"
+      - "thank you, that helps"
+
+  - name: goodbye
+    route: smalltalk_agent
+    description: The user is ending the conversation.
+    keywords: [bye, goodbye, "see you", farewell]
+    examples:
+      - "goodbye"
+      - "bye for now"
+
+  # ------------------------------------------------------------------ policy #
+  - name: leave_policy
+    route: policy_agent
+    description: Annual leave, sick leave, parental leave and time off.
+    keywords: [leave, vacation, holiday, "time off", sick, sickness, parental,
+               maternity, paternity, "carry over", carryover, absence, caregiver]
+    examples:
+      - "how many days of annual leave do I get"
+      - "how much notice do I need for parental leave"
+      - "what happens to unused sick leave"
+
+  - name: expense_policy
+    route: policy_agent
+    description: Expense claims, receipts and reimbursement.
+    keywords: [expense, reimbursement, reimbursed, receipt, claim, invoice]
+    examples:
+      - "how long do I have to submit an expense claim"
+      - "do I need a receipt for a small expense"
+
+  - name: travel_policy
+    route: policy_agent
+    description: Business travel booking, cabin class and per diem.
+    keywords: [travel, trip, "business trip", flight, "business class",
+               "economy class", "per diem", hotel, airfare]
+    examples:
+      - "can I book business class for a long flight"
+      - "what is the meal per diem when travelling"
+      - "do I need approval before booking a business trip"
+
+  - name: workplace_policy
+    route: policy_agent
+    description: Remote work, hybrid working, probation, notice and performance reviews.
+    keywords: [remote, remotely, hybrid, "work from home", reachable, probation,
+               "notice period", resign, "performance review", appraisal,
+               "core hours", compensation, "salary band", "pay band"]
+    examples:
+      - "how many days a week can I work remotely"
+      - "how long is the probation period"
+      - "when do performance reviews happen"
+      - "when do I need to be reachable on a remote day"
+
+  - name: conduct_policy
+    route: policy_agent
+    description: Code of conduct, gifts, conflicts of interest and grievances.
+    keywords: [conduct, grievance, gift, bribe, "conflict of interest", ethics, supplier]
+    examples:
+      - "do I need to declare a gift from a supplier"
+      - "how do I raise a grievance"
+
+  - name: security_policy
+    route: policy_agent
+    description: Password rules, data classification, acceptable use and incident reporting.
+    keywords: [password, rotation, rotated, mfa, "multi-factor", authentication,
+               encryption, encrypted, "data classification", classification,
+               confidential, restricted, phishing, "security incident", usb,
+               "usb drive", "acceptable use"]
+    examples:
+      - "how long must a password be"
+      - "how often must passwords be rotated"
+      - "how quickly do I have to report a security incident"
+      - "what are the data classification levels"
+      - "can I plug a personal USB drive into my work laptop"
+
+  # ---------------------------------------------------------------- learning #
+  - name: learning_budget
+    route: learning_agent
+    description: Annual learning budget and dedicated learning days.
+    keywords: ["learning budget", "training budget", "learning day", "dedicated learning", conference]
+    examples:
+      - "what is my annual learning budget"
+      - "how many learning days do I get"
+      - "do learning days reduce my annual leave"
+    # "learning day" is a more specific signal than the bare word "leave", which
+    # leave_policy also matches. This breaks that tie in favour of the specific one.
+    priority: 1.15
+
+  - name: certification
+    route: learning_agent
+    description: Certification exams, reimbursement and certification paths.
+    keywords: [certification, certificate, exam, "cloud certification", accreditation,
+               prerequisite, "study hours"]
+    examples:
+      - "is my certification exam fee reimbursed"
+      - "what are the stages of the cloud certification path"
+
+  - name: curriculum
+    route: learning_agent
+    description: Curricula, courses, enrolment, cohorts and development programmes.
+    keywords: [curriculum, course, enrol, enroll, enrolment, module, capstone,
+               "leadership programme", "leadership development", leadership,
+               cohort, programme, nomination, waitlist]
+    examples:
+      - "what modules are in the data and AI curriculum"
+      - "how do I enrol in an internal course"
+      - "how many participants are in a leadership cohort"
+
+  - name: mentoring
+    route: learning_agent
+    description: The mentoring programme, mentors and matching rounds.
+    keywords: [mentor, mentoring, mentee, coaching]
+    examples:
+      - "how often do mentor and mentee meet"
+      - "when are mentoring matching rounds"
+
+  # ---------------------------------------------------------------------- IT #
+  - name: it_hardware
+    route: support_agent
+    description: Laptops, monitors, docks and hardware refresh.
+    keywords: [laptop, hardware, monitor, dock, accessory, refresh, device]
+    examples:
+      - "how often is my laptop replaced"
+      - "how do I order a second monitor"
+
+  - name: it_software
+    route: support_agent
+    description: Software requests, licences and installation.
+    keywords: [software, install, licence, license, application, catalogue]
+    examples:
+      - "how do I request new software"
+      - "how long does a software request take"
+
+  - name: it_access
+    route: support_agent
+    description: VPN, password reset, account lockout and system access requests.
+    keywords: [vpn, "password reset", "reset my password", lockout, locked, unlock,
+               access, "access request", recertified, recertification, revoked,
+               leaver, offboarding, "sign-in", "sign in", "failed attempts",
+               "remote access"]
+    examples:
+      - "how do I reset my password"
+      - "my account is locked out, what do I do"
+      - "how do I get VPN access"
+      - "after how many failed attempts is my account locked"
+      - "when is system access revoked for a leaver"
+
+  - name: it_support
+    route: support_agent
+    description: Service desk hours, ticket priorities and response targets.
+    keywords: ["service desk", "help desk", ticket, "response target", "opening hours", p1, p2, p3]
+    examples:
+      - "what hours is the service desk open"
+      - "what is the response target for a P1 incident"
+
+  # -------------------------------------------------------------- escalation #
+  - name: human_handoff
+    route: escalation_agent
+    description: The user explicitly asks for a person or to raise a ticket.
+    keywords: ["speak to a human", "talk to someone", "raise a ticket", "open a ticket",
+               representative, escalate]
+    examples:
+      - "I want to speak to a human"
+      - "please raise a ticket for me"
+    priority: 1.2

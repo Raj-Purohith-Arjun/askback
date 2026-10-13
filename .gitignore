@@ -1,0 +1,49 @@
+# Environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local SQLite scratch: conversation stores and corpus indexes are rebuilt from
+# data/, so a committed one is stale the moment it lands.
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets
+.env
+
+# Assistant and editor settings. Local, and they can hold permissions or paths that are yours.
+.claude/
+
+# Internal audits of this repository. They QUOTE the strings they found (names, key-shaped
+# values), so committing one would publish exactly what it warns about.
+docs/CODEBASE-SURVEY.md
+docs/RELEASE-AUDIT.md
+
+# Generated evaluation output. Baselines under data/baselines/ ARE committed:
+# a baseline nobody can review is not a baseline.
+reports/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Packaged output from scripts/package.py
+dist/
+
+# On-disk judge verdicts (evaluation.judge.cache_path). Keyed on prompt and
+# model, so it is valid anywhere, but it is a cache: rebuilt by running.
+.cache/

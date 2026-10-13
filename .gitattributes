@@ -1,0 +1,7 @@
+# One line ending in the repository and in every checkout, whatever
+# core.autocrlf says on the machine. Without this a Windows checkout is CRLF,
+# tools write LF, and the working tree drifts into a mix of both.
+* text=auto eol=lf
+
+# cmd.exe misreads labels and multi-line blocks in an LF batch file.
+*.bat text eol=crlf

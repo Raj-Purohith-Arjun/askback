@@ -1,0 +1,52 @@
+# Points `askback eval` at the example Socket.IO agent (examples/socketio-agent/server.py).
+# Run the server first, from the repository root:   python examples/socketio-agent/server.py
+# The event names below are the example's. A real agent's are its own: they are config on
+# purpose, so adapting to one is an edit here and not a change to the adapter.
+agent:
+  adapter: socketio
+  url: http://127.0.0.1:9100
+  namespace: /chat
+
+  events:
+    send: ask                    # the event a turn is emitted on
+    content: [reply, chunk]      # events whose payload carries reply text
+    metadata: [routing, tool_status]   # events that carry route, tools, citations - harvested too
+    terminator: done             # the reply is complete when this arrives
+    errors: [oops]               # an event that means the turn failed
+    # Anything else (this server also sends `typing`) is ignorable, and logged once by name.
+
+  # Where each piece lives in the merged payload of those events. `text` is where a
+  # content event keeps its text; the rest are read from every classified event.
+  response_mapping:
+    text: text
+
+  request_template:
+    message: "{message}"
+
+  # A server that never sends a terminator needs this instead (there is no default):
+  # idle_timeout_s: 3
+
+  timeout_s: 120                 # a whole turn. Replies on this class of system run past 45s.
+
+  # The target allows 10 per 10s and 30 per minute. The adapter waits for room in both.
+  rate_limit:
+    - {requests: 10, per_s: 10}
+    - {requests: 30, per_s: 60}
+
+  # Static credentials (a server with auth takes an Authorization header):
+  principal_headers:
+    default: {}
+    test_user: {}
+  # ...or a login hook that runs /signin + /verifyotp and keeps the token fresh. Give
+  # this INSTEAD of principal_headers; the hook's module must be importable (run from
+  # examples/socketio-agent, or put it on PYTHONPATH).
+  # auth:
+  #   hook: auth:factory
+  #   options:
+  #     base_url: http://127.0.0.1:9100
+  #     users:
+  #       default: {username: demo-user, password: pw, otp: "123456"}
+  #       test_user: {username: demo-user, password: pw, otp: "123456"}
+
+  # The tools of this agent that act on the world. It has none.
+  side_effecting_tools: []

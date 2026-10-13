@@ -1,0 +1,15 @@
+# Reproducible dev tooling. These are the exact versions every gate (ruff, mypy --strict, pytest
+# --strict-env) was run against, on Python 3.11 and 3.14. Install with:
+#
+#     pip install -c constraints.txt -e ".[all,dev]"
+#
+# It pins only what changes verdicts: a new ruff or mypy can add rules or findings, and a CI that
+# floats with them goes red for reasons that are not in your diff. Runtime dependencies stay
+# unpinned (this is a library; pinning them here would pin your environment).
+# Bump deliberately: change a line, run the gates, and fix or accept what moves.
+mypy==2.4.0
+mypy_extensions==1.1.0
+pytest==9.1.1
+respx==0.23.1
+ruff==0.17.0
+types-PyYAML==6.0.12.20260906

@@ -1,0 +1,342 @@
+# CI. A clean pull request is GREEN: nothing that gates a PR is expected to fail.
+#
+#   checks     every pull request, forks included. Lint, types, unit tests (Python 3.11 and 3.14).
+#   wheel      every pull request. Builds the wheel, installs it into a clean virtualenv and runs
+#              `askback eval` from an empty directory: the first command a stranger types.
+#   eval       pull requests from this repository. Grades the built-in demo agent against the
+#              bundled example suite. Green on a clean checkout; a red one is a real regression.
+#   demo-hr    pull requests from this repository. A DEMONSTRATION, not a gate: it grades the HR
+#              example simulator, which is red on purpose (examples/hr/README.md says why). It is
+#              `continue-on-error`, so it can never fail a pull request. Do not make it required.
+#   eval-fork  pull requests from a fork. Runs nothing; says why `eval` was skipped.
+#   nightly    on a schedule. The HR demonstration graded by a model judge, under a spending
+#              ceiling. Informational too: it exits 1 for as long as the simulator has findings.
+#
+# Never `pull_request_target`. It runs with this repository's secrets against the fork's code.
+# Plain `pull_request` gives a fork no secrets, which is why the job that will hold them is skipped
+# for forks rather than made to work there.
+#
+# Every action is pinned to a full commit SHA, with its release as a comment: a tag can be moved,
+# a SHA cannot. To update one, resolve the new release's commit and change both together.
+# Dev tools (ruff, mypy, pytest) are pinned by constraints.txt for the same reason.
+
+name: evaluate
+
+on:
+  pull_request:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A push to a pull request supersedes the run before it. The event is part of
+# the group so a pull request never cancels the nightly, or the reverse.
+concurrency:
+  group: evaluate-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # Named, not defaulted: this is what turns `pipefail` on, and without it
+    # `eval | tee` would report tee's exit code and every run would be green.
+    shell: bash
+
+jobs:
+  checks:
+    name: lint, types, unit (py${{ matrix.python }})
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # What pyproject.toml promises, and nothing it has not been run on.
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            constraints.txt
+      - name: Install
+        run: pip install -c constraints.txt -e ".[all,dev]"
+      - name: Lint
+        run: ruff check src tests tools examples
+      - name: Types
+        run: mypy src
+      - name: Unit tests
+        # Strict: a test module skipped for a missing extra is an error here.
+        run: pytest --strict-env
+
+  wheel:
+    name: a plain install works
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+      - name: Build the wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel --outdir "$RUNNER_TEMP/dist"
+      - name: The wheel carries the demo and not the simulator
+        run: |
+          python - <<'PY'
+          import glob, os, sys, zipfile
+          wheel = glob.glob(os.path.join(os.environ["RUNNER_TEMP"], "dist", "*.whl"))[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          assert any(n.endswith("askback/demo/suites/demo.yaml") for n in names), "demo suite missing"
+          bad = [n for n in names if n.split("/")[0] == "askback_sim"]
+          assert not bad, f"the simulator is in the wheel: {bad[:3]}"
+          print(f"{os.path.basename(wheel)}: {len(names)} files, demo present, simulator absent")
+          PY
+      - name: Install it in a clean environment and run the first command
+        run: |
+          python -m venv "$RUNNER_TEMP/clean"
+          "$RUNNER_TEMP/clean/bin/pip" install "$RUNNER_TEMP"/dist/*.whl
+          mkdir "$RUNNER_TEMP/empty" && cd "$RUNNER_TEMP/empty"
+          "$RUNNER_TEMP/clean/bin/askback" eval --quiet --format json
+
+  eval:
+    name: example suite (built-in demo agent)
+    # Same-repository pull requests only. This is the job that will hold the
+    # agent's credentials once an adapter points at a deployed system, so the
+    # fork gate is here before the first secret is. Today it holds none.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: pip install -e .
+      - name: Evaluate
+        # No config: the built-in demo agent and the bundled example suite, graded by the free
+        # heuristic judge. It passes on a clean checkout, so a red result here is a regression
+        # in the framework or in the suite, not a known finding.
+        run: |
+          python -m askback eval --quiet --format json,html,md --redaction ci \
+            --reports-dir reports --name eval | tee eval.log
+      - name: Job summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            if [ -f reports/eval.md ]; then
+              cat reports/eval.md
+            else
+              echo "## Evaluation wrote no report"
+              echo
+              echo "The run stopped before it had one. The log says why."
+            fi
+            if [ -f eval.log ]; then
+              echo
+              echo "### Gates"
+              echo
+              echo '```text'
+              sed -n -E '/^(PASSED|FAILED|ERROR|UNCHECKED): /,$p' eval.log
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: eval-report-pr-${{ github.event.pull_request.number }}
+          # Written at `ci` redaction above; `full` is refused while CI is set.
+          path: reports/eval.*
+          retention-days: 7
+          if-no-files-found: warn
+
+  demo-hr:
+    name: "DEMONSTRATION: HR simulator (expected to be red; informational, not a gate)"
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Never fails the pull request. The simulator has real flaws on purpose, and a red run here
+    # is the tool working, not a defect in the change under review.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: pip install -e .
+      - name: Evaluate the HR simulator against its committed baseline
+        run: |
+          python -m askback --config examples/hr/config.yaml eval --quiet \
+            --format json,html,md --redaction ci --compare-baseline \
+            --reports-dir reports --name demo-hr | tee demo-hr.log
+      - name: Job summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "## Demonstration: the HR simulator"
+            echo
+            echo "**This run is expected to be red and does not gate the pull request.** The"
+            echo "simulator has real flaws that these suites exist to catch; see"
+            echo "\`examples/hr/README.md\`. What matters here is the *regression comparison*: a"
+            echo "case that newly fails against the committed baseline."
+            echo
+            if [ -f demo-hr.log ]; then
+              echo '```text'
+              sed -n -E '/^(PASSED|FAILED|ERROR|UNCHECKED): /,$p' demo-hr.log
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  eval-fork:
+    name: example suite (skipped for forks)
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Say why
+        run: |
+          why="The evaluation job is skipped for pull requests from a fork. It is the job that holds the credentials of the system under test, and a fork's code is not given them. Lint, types, unit tests and the wheel check ran; a maintainer runs the evaluation once the change is on a branch of this repository."
+          echo "::notice title=Evaluation skipped for a fork::$why"
+          {
+            echo "## Evaluation skipped"
+            echo
+            echo "$why"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  nightly:
+    name: "nightly: HR demonstration graded by a model judge (informational)"
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # It exits 1 for as long as the simulator has findings, so it can never be a gate. It exists
+    # to show a model judge end to end, under a spending ceiling.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            constraints.txt
+      - name: Install
+        run: pip install -c constraints.txt -e ".[llm]"
+
+      # Verdicts are keyed on prompt, model and prompt version, so an unchanged
+      # case costs nothing on the next night. Restore and save are separate
+      # steps because the combined action saves only when the job succeeded, and
+      # this job exits 1 for as long as a case is failing.
+      #
+      # A cache written on the default branch can be restored by a pull
+      # request's workflow, a fork's included, so what it holds is public to
+      # anyone who can open one. It holds scores under a hash of the prompt and
+      # nothing else: the rationale, which quotes the reply it graded, is not
+      # written.
+      - name: Restore judge verdicts
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .cache/judge
+          key: judge-scores-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: judge-scores-
+
+      - name: Switch the model judge on
+        env:
+          JUDGE_PROVIDER: ${{ vars.JUDGE_PROVIDER }}
+          # Required for anthropic, and for an openai server at your own base URL.
+          JUDGE_MODEL: ${{ vars.JUDGE_MODEL }}
+          # The ceiling. The run stops with exit 3 and no verdict once the judge
+          # has spent more than this. It is counted in the two prices, which have
+          # no default: without them the step fails instead of writing a ceiling
+          # that could never trip.
+          JUDGE_BUDGET_USD: ${{ vars.JUDGE_BUDGET_USD || '5.00' }}
+          JUDGE_PRICE_PER_1K_PROMPT: ${{ vars.JUDGE_PRICE_PER_1K_PROMPT }}
+          JUDGE_PRICE_PER_1K_COMPLETION: ${{ vars.JUDGE_PRICE_PER_1K_COMPLETION }}
+        run: python scripts/ci_judge_config.py examples/hr/config.yaml "$RUNNER_TEMP/nightly.yaml"
+
+      - name: Evaluate
+        # The only step that sees a credential. Set the ones your provider reads. A self-hosted
+        # OpenAI-compatible server needs only the base URL and model (no key). An unset variable
+        # is empty, and a judge missing a required one stops the run rather than fall back to
+        # the heuristic.
+        env:
+          JUDGE_OPENAI_BASE_URL: ${{ vars.JUDGE_OPENAI_BASE_URL }}
+          JUDGE_OPENAI_MODEL: ${{ vars.JUDGE_OPENAI_MODEL }}
+          JUDGE_OPENAI_API_KEY: ${{ secrets.JUDGE_OPENAI_API_KEY }}
+          JUDGE_AZURE_OPENAI_ENDPOINT: ${{ secrets.JUDGE_AZURE_OPENAI_ENDPOINT }}
+          JUDGE_AZURE_OPENAI_API_KEY: ${{ secrets.JUDGE_AZURE_OPENAI_API_KEY }}
+          JUDGE_AZURE_OPENAI_DEPLOYMENT: ${{ vars.JUDGE_AZURE_OPENAI_DEPLOYMENT }}
+          JUDGE_ANTHROPIC_API_KEY: ${{ secrets.JUDGE_ANTHROPIC_API_KEY }}
+          JUDGE_ANTHROPIC_MODEL: ${{ vars.JUDGE_ANTHROPIC_MODEL }}
+        # No --compare-baseline: the baseline was graded by the heuristic, and a
+        # model judge is a different scoring regime, not a regression from it.
+        run: |
+          python -m askback --config "$RUNNER_TEMP/nightly.yaml" eval --quiet \
+            --format json,html,md --redaction ci \
+            --reports-dir reports --name nightly | tee eval.log
+
+      - name: Refuse a nightly the heuristic graded
+        if: ${{ !cancelled() && hashFiles('reports/nightly.json') != '' }}
+        run: |
+          python - <<'PY'
+          import json, sys
+          judge = json.load(open("reports/nightly.json", encoding="utf-8"))["context"].get("judge")
+          if not judge or judge == "heuristic":
+              sys.exit(f"The nightly was graded by {judge!r}, not a model judge. Its numbers are not the nightly's.")
+          print(f"Graded by {judge}.")
+          PY
+
+      - name: Job summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            if [ -f reports/nightly.md ]; then
+              cat reports/nightly.md
+            else
+              echo "## Nightly evaluation wrote no report"
+              echo
+              echo "The run stopped before it had one, most likely on a missing judge setting. The log says which."
+            fi
+            if [ -f eval.log ]; then
+              echo
+              echo "### Gates"
+              echo
+              echo '```text'
+              sed -n -E '/^(PASSED|FAILED|ERROR|UNCHECKED): /,$p' eval.log
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save judge verdicts
+        if: ${{ !cancelled() && hashFiles('.cache/judge/**') != '' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .cache/judge
+          key: judge-scores-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: eval-report-nightly-${{ github.run_id }}
+          path: reports/nightly.*
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,0 +1,15 @@
+askback
+Copyright 2026 The askback authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The corpus under examples/hr/corpus/, the suites under examples/hr/datasets/ and
+src/askback/demo/suites/, the fixtures under tests/ and examples/, and the labelled
+records under examples/hr/calibration/ are invented. They were written for this project,
+describe no real organisation, and quote no real document or policy. "Acme" and
+"Harborview" are placeholder organisations, and the personal names in them are
+placeholders too. Any resemblance to a real organisation or person is coincidental.
+
+No third-party source code is bundled in this distribution. The packages it
+depends on (PyYAML, and the optional extras listed in pyproject.toml) are
+installed separately under their own licences.
