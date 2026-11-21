@@ -24,7 +24,9 @@ dist/
 .env
 
 # Assistant and editor settings. Local, and they can hold permissions or paths that are yours.
-.claude/
+.claude/settings.local.json
+.claude/*.local.md
+.claude/scratch/
 
 # Internal audits of this repository. They QUOTE the strings they found (names, key-shaped
 # values), so committing one would publish exactly what it warns about.
