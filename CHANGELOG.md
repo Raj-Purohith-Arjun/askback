@@ -188,6 +188,11 @@ was longer than 100. Or use the repository's **Actions → Caches** page.
   writing a suite, an adapter and an evaluator, a cost page, and runnable examples under
   `examples/`. `askback` ships a `py.typed` marker, and the package declares its
   licence.
+- **Release workflow** (`.github/workflows/release.yml`). Builds the sdist and the wheel, checks
+  that both carry the demo suite and neither carries the simulator, installs each into a clean
+  environment and runs `askback eval`, then publishes to PyPI by trusted publishing (OIDC, with
+  attestations) when a GitHub release is published. No API token is used. A manual run does the
+  build and checks without publishing; it can also upload to TestPyPI.
 - **Test-suite integrity.** `--strict-env` turns a test module skipped for a missing
   optional dependency into an error, and `tests/expected_tests.json` records the
   collection floor, so a module that stops being collected breaks the run.

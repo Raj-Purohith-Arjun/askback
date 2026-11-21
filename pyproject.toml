@@ -11,7 +11,7 @@ readme = "README.md"
 license = {text = "Apache-2.0"}
 # What has actually been run: 3.11 (a clean clone, every gate) and 3.14 (development).
 requires-python = ">=3.11"
-# PLACEHOLDER: set the real author before publishing.
+# Name only, on purpose: PyPI metadata is public and not editable after the first upload.
 authors = [{name = "Raj Purohith Arjun"}]
 keywords = ["testing", "evaluation", "conversational-agent", "llm", "rag", "agents", "ci"]
 classifiers = [

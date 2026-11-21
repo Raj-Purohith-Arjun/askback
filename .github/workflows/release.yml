@@ -1,0 +1,160 @@
+# Release: build once, check what was built, publish to PyPI by trusted publishing (OIDC).
+#
+#   build     every trigger. Builds the sdist and the wheel, and checks BOTH carry the demo suite
+#             and neither carries the simulator (the pull-request `wheel` job in evaluate.yml
+#             checks the wheel only). Then installs each into a clean virtualenv and runs the first
+#             command a stranger types, `askback eval`, from an empty directory (invariant 10).
+#             This job is the whole of the dry run: trigger the workflow by hand to run it with
+#             nothing published.
+#   pypi      a published GitHub release only. Uploads exactly the files `build` checked.
+#   testpypi  a manual run with `publish_testpypi` ticked. Needs its OWN trusted publisher,
+#             registered on test.pypi.org (project askback, this workflow, environment `testpypi`).
+#             The PyPI registration does not cover it.
+#
+# NO API TOKEN, anywhere. PyPI trusts this repository, this workflow file and the `pypi`
+# environment, and hands the publish step a short-lived credential minted from the run's OIDC
+# identity. That is why `id-token: write` exists on the publish jobs and nowhere else. If a step
+# here ever asks for a secret, something is wrong.
+#
+# The workflow file name, the environment name and the project name are the registration. Renaming
+# any of them silently breaks publishing: PyPI rejects the identity rather than falling back.
+#
+# Every action is pinned to a full commit SHA with its release as a comment, as in evaluate.yml.
+
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish_testpypi:
+        description: "Also upload to TestPyPI (needs the testpypi trusted publisher)"
+        type: boolean
+        default: false
+
+# Nothing by default. Each job asks for what it needs.
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: build and check the sdist and the wheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: The tag names the version being built
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import os, re, sys
+          source = open("src/askback/__init__.py", encoding="utf-8").read()
+          version = re.search(r'^__version__ = "([^"]+)"', source, re.MULTILINE).group(1)
+          tag = os.environ["TAG"]
+          if tag != f"v{version}":
+              sys.exit(f"The release tag is {tag!r} but the package is version {version!r}.")
+          print(f"{tag} matches the package version.")
+          PY
+
+      - name: Build
+        run: |
+          python -m pip install build twine
+          python -m build --outdir dist
+          ls -l dist
+
+      - name: Metadata renders on PyPI
+        run: python -m twine check --strict dist/*
+
+      - name: Both distributions carry the demo and neither carries the simulator
+        run: |
+          python - <<'PY'
+          import glob, tarfile, zipfile
+          wheels, sdists = glob.glob("dist/*.whl"), glob.glob("dist/*.tar.gz")
+          assert len(wheels) == 1 and len(sdists) == 1, (wheels, sdists)
+          listings = {
+              "wheel": zipfile.ZipFile(wheels[0]).namelist(),
+              "sdist": tarfile.open(sdists[0]).getnames(),
+          }
+          for label, names in listings.items():
+              for required in ("askback/demo/suites/demo.yaml", "askback/py.typed"):
+                  assert any(n.endswith(required) for n in names), f"{label}: {required} missing"
+              leaked = [n for n in names if "askback_sim" in n.split("/")]
+              assert not leaked, f"{label}: the simulator is in the distribution: {leaked[:3]}"
+              print(f"{label}: {len(names)} files, demo present, simulator absent")
+          PY
+
+      - name: Each distribution installs in a clean environment and runs the first command
+        run: |
+          for kind in wheel sdist; do
+            if [ "$kind" = wheel ]; then dist=(dist/*.whl); else dist=(dist/*.tar.gz); fi
+            env="$RUNNER_TEMP/clean-$kind"
+            python -m venv "$env"
+            "$env/bin/pip" install "$PWD/${dist[0]}"
+            empty="$RUNNER_TEMP/empty-$kind"
+            mkdir "$empty"
+            (cd "$empty" && "$env/bin/askback" eval --quiet --format json)
+          done
+
+      - name: Keep what was checked
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  pypi:
+    name: publish to PyPI
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Must match the pending publisher registered on PyPI: environment `pypi`.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/askback
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          attestations: true
+
+  testpypi:
+    name: publish to TestPyPI (manual)
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_testpypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/askback
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          attestations: true
+          # A dry run is repeated; the same version cannot be uploaded twice.
+          skip-existing: true
