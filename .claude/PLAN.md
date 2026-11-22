@@ -57,6 +57,7 @@ done and observed.
 Phase 0 — a stranger can install it
 - [~] `0.1` Publish to PyPI through trusted publishing — **merged with 0.2 and done FIRST** (see 0.1). Landed in `179eb7d`, `a8772fd`. Waiting on: tag v0.1.0 pushed and a GitHub release published (which fires the pypi job in release.yml). The trusted publisher is registered and verified on pypi.org. Done-when (`pip install askback` from a fresh container) cannot be observed until the package exists on PyPI.
 - [ ] `0.2` Tag v0.1.0 and cut the release — **merged into 0.1**; one release, one pass
+- [ ] `0.2b` Make CI honest: checks on push, no masked failures, a nightly that says it did not run — **jumped the queue ahead of 0.4** (see 0.2b)
 - [ ] `0.3` Widen the Python matrix to what actually works
 - [ ] `0.4` Badges and repository metadata
 - [ ] `0.5` Issue and PR templates, CODEOWNERS
@@ -166,6 +167,40 @@ is unusual and it is the correct call here; it is also the thing that makes the 
 announcement land.
 
 **Done when.** `pip install askback==0.1.0` works, and the release page states the limitation.
+
+## 0.2b Make CI honest before a badge points at it
+
+**Why.** 0.4 adds a CI badge, and the badge as it stood was green while nothing ran. Found by
+reading all 39 runs of `evaluate.yml` (`docs/` has no copy; the finding is summarised here):
+`checks` was pull-request-only, so the 769-test suite had never run on GitHub; the one job that
+did run on a schedule, `nightly`, failed at "Switch the model judge on" on every run and
+`continue-on-error: true` turned that into a successful workflow run; and 14 runs never started
+at all (an account billing lock) yet still read green. That is invariants 1 and 8 broken in our
+own CI. It jumped the queue because a badge over a CI that cannot fail is worse than no badge.
+
+**Touches.** `.github/workflows/evaluate.yml`, `tests/test_workflow.py`, `README.md` (the CI
+paragraph and the badge URL), `.claude/PLAN.md`.
+
+**Do.**
+- `checks`, `wheel` and `eval` also run on a push to `main`.
+- Remove `continue-on-error` from `nightly`. Exit 1 (the simulator's known findings) is reported
+  inside the step and does not fail the job; any other exit, or no report, is red.
+- The nightly runs only when `vars.JUDGE_PROVIDER` is set. When it is not, `nightly-skipped` runs
+  instead and says, in its name, an annotation and the run summary, that nothing was graded and
+  why. A half-configured judge (provider set, prices missing) still fails loudly in
+  "Switch the model judge on".
+- The README badge is pinned to `branch=main&event=push`, so the scheduled runs cannot colour it.
+- The workflow header states the rule in terms of invariants 1 and 8, and a test fails if a job
+  other than `demo-hr` gets `continue-on-error`.
+
+**Done when.** A pull request's `checks` jobs ran on GitHub and are green on their own merits
+(or red for a real reason, recorded), and a run of the nightly with `JUDGE_PROVIDER` unset shows
+`nightly-skipped`, not a green `nightly`.
+
+**Watch.** The billing lock is the owner's, not this step's: do not "fix" it in the repository.
+`demo-hr` still has `continue-on-error` and so can hide a regression against its baseline (exit
+2) as well as its expected red (exit 1). Deliberately left; deciding whether a regression there
+should fail a PR is a separate call.
 
 ## 0.3 Widen the Python matrix to what actually works
 

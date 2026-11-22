@@ -1,16 +1,35 @@
 # CI. A clean pull request is GREEN: nothing that gates a PR is expected to fail.
 #
-#   checks     every pull request, forks included. Lint, types, unit tests (Python 3.11, 3.12, 3.13 and 3.14).
-#   wheel      every pull request. Builds the wheel, installs it into a clean virtualenv and runs
-#              `askback eval` from an empty directory: the first command a stranger types.
-#   eval       pull requests from this repository. Grades the built-in demo agent against the
-#              bundled example suite. Green on a clean checkout; a red one is a real regression.
+#   checks     every pull request (forks included) and every push to main. Lint, types, unit
+#              tests (Python 3.11, 3.12, 3.13 and 3.14).
+#   wheel      every pull request and every push to main. Builds the wheel, installs it into a
+#              clean virtualenv and runs `askback eval` from an empty directory: the first
+#              command a stranger types.
+#   eval       pull requests from this repository, and pushes to main. Grades the built-in demo
+#              agent against the bundled example suite. Green on a clean checkout; a red one is a
+#              real regression.
 #   demo-hr    pull requests from this repository. A DEMONSTRATION, not a gate: it grades the HR
 #              example simulator, which is red on purpose (examples/hr/README.md says why). It is
 #              `continue-on-error`, so it can never fail a pull request. Do not make it required.
 #   eval-fork  pull requests from a fork. Runs nothing; says why `eval` was skipped.
-#   nightly    on a schedule. The HR demonstration graded by a model judge, under a spending
-#              ceiling. Informational too: it exits 1 for as long as the simulator has findings.
+#   nightly    on a schedule or by hand, and only when a model judge is configured
+#              (`vars.JUDGE_PROVIDER`). The HR demonstration graded by a model judge, under a
+#              spending ceiling. Exit 1 is the simulator's known findings and is reported, not
+#              failed; any other failure (judge misconfigured, run could not be judged) is RED.
+#   nightly-skipped
+#              the same triggers, when no judge is configured. It says so, with the reason, in
+#              the job name, an annotation and the run summary.
+#
+# UNMEASURABLE NEVER PASSES (CLAUDE.md invariants 1 and 8), applied to this file. A job that could
+# not do its work must be red or say "skipped"; it must never be green. Before this was written,
+# the nightly failed at its first real step on every run, `continue-on-error` turned that into a
+# successful workflow run, 14 runs never started at all (an account billing lock) and still read
+# green, and the test suite had never run on GitHub because `checks` was pull-request-only. Do not
+# put `continue-on-error` on a job to hide that it did not run. The one remaining use, `demo-hr`,
+# exists because that job is expected to be red.
+#
+# The badge in the README is pinned to `event=push` on `main`, so the scheduled runs, which skip
+# every job that matters on a push, cannot colour it.
 #
 # Never `pull_request_target`. It runs with this repository's secrets against the fork's code.
 # Plain `pull_request` gives a fork no secrets, which is why the job that will hold them is skipped
@@ -24,6 +43,10 @@ name: evaluate
 
 on:
   pull_request:
+  # A push to main runs the same gates as a pull request, so the branch the badge and the release
+  # point at is itself checked, not only the branches that merge into it.
+  push:
+    branches: [main]
   schedule:
     - cron: "23 2 * * *"
   workflow_dispatch:
@@ -46,7 +69,7 @@ defaults:
 jobs:
   checks:
     name: lint, types, unit (py${{ matrix.python }})
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -75,7 +98,7 @@ jobs:
 
   wheel:
     name: a plain install works
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -109,10 +132,12 @@ jobs:
     name: example suite (built-in demo agent)
     # Same-repository pull requests only. This is the job that will hold the
     # agent's credentials once an adapter points at a deployed system, so the
-    # fork gate is here before the first secret is. Today it holds none.
+    # fork gate is here before the first secret is. Today it holds none. A push to main is this
+    # repository's own code, so it is allowed through.
     if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -155,7 +180,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: eval-report-pr-${{ github.event.pull_request.number }}
+          name: eval-report-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
           # Written at `ci` redaction above; `full` is refused while CI is set.
           path: reports/eval.*
           retention-days: 7
@@ -221,14 +246,35 @@ jobs:
             echo "$why"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  nightly-skipped:
+    name: "nightly: SKIPPED (no model judge configured: JUDGE_PROVIDER is not set)"
+    if: >-
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      vars.JUDGE_PROVIDER == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Say that nothing was graded, and why
+        run: |
+          why="The nightly was NOT RUN: the repository variable JUDGE_PROVIDER is not set, so there is no model judge to grade with. Nothing was graded. Set JUDGE_PROVIDER, JUDGE_BUDGET_USD, JUDGE_PRICE_PER_1K_PROMPT and JUDGE_PRICE_PER_1K_COMPLETION (and JUDGE_MODEL where the provider needs one) under Settings > Secrets and variables > Actions > Variables to turn it on."
+          echo "::warning title=Nightly skipped, nothing was graded::$why"
+          {
+            echo "## Nightly skipped: nothing was graded"
+            echo
+            echo "$why"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   nightly:
-    name: "nightly: HR demonstration graded by a model judge (informational)"
-    if: github.event_name != 'pull_request'
+    name: "nightly: HR demonstration graded by a model judge"
+    # Only when a judge is configured. Unconfigured is `nightly-skipped` above, which says so.
+    if: >-
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      vars.JUDGE_PROVIDER != ''
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # It exits 1 for as long as the simulator has findings, so it can never be a gate. It exists
-    # to show a model judge end to end, under a spending ceiling.
-    continue-on-error: true
+    # NO `continue-on-error`. This job used to carry it, failed at its first real step on every run
+    # and reported green. It is red when it cannot grade. The simulator's known findings (exit 1)
+    # are handled inside the Evaluate step, so they are reported without failing the job.
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -288,10 +334,26 @@ jobs:
           JUDGE_ANTHROPIC_MODEL: ${{ vars.JUDGE_ANTHROPIC_MODEL }}
         # No --compare-baseline: the baseline was graded by the heuristic, and a
         # model judge is a different scoring regime, not a regression from it.
+        #
+        # Exit codes: 0 pass, 1 a gate failed, 3 the run could not be judged. The HR simulator
+        # fails its gates on purpose, so 1 is the expected outcome and is reported, not failed.
+        # Anything else (3, a crash, a missing report) is a run that did not grade: red.
         run: |
+          # GitHub's bash runs with -e and pipefail; turn -e off so askback's own status can be read.
+          set +e
           python -m askback --config "$RUNNER_TEMP/nightly.yaml" eval --quiet \
             --format json,html,md --redaction ci \
             --reports-dir reports --name nightly | tee eval.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "askback exited $rc" | tee -a eval.log
+          if [ "$rc" -eq 0 ]; then exit 0; fi
+          if [ "$rc" -eq 1 ] && [ -f reports/nightly.json ]; then
+            echo "::notice title=Nightly graded, with findings::exit 1 is the HR simulator's known findings (examples/hr/README.md)."
+            exit 0
+          fi
+          echo "::error title=Nightly could not grade::askback exited $rc (3 means the run could not be judged)."
+          exit "$rc"
 
       - name: Refuse a nightly the heuristic graded
         if: ${{ !cancelled() && hashFiles('reports/nightly.json') != '' }}

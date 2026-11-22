@@ -46,9 +46,47 @@ def test_it_never_uses_pull_request_target(workflow: dict[str, Any]) -> None:
 
 def test_the_hr_demonstration_can_never_fail_a_pull_request(workflow: dict[str, Any]) -> None:
     jobs = workflow["jobs"]
-    for name in ("demo-hr", "nightly"):
-        assert jobs[name]["continue-on-error"] is True, name
+    assert jobs["demo-hr"]["continue-on-error"] is True
     assert "DEMONSTRATION" in jobs["demo-hr"]["name"]
+
+
+def test_no_job_that_must_grade_can_hide_that_it_did_not(workflow: dict[str, Any]) -> None:
+    # Invariants 1 and 8 applied to CI: the nightly used to carry continue-on-error, failed at its
+    # first real step on every run, and reported green. `demo-hr` is the only job allowed to be red
+    # without failing the run, because red is its expected result.
+    allowed = {"demo-hr"}
+    masked = {n for n, j in workflow["jobs"].items() if j.get("continue-on-error")}
+    assert masked <= allowed, f"{masked - allowed} hide a failure behind continue-on-error"
+
+
+def test_the_suite_runs_on_a_push_to_main_not_only_on_pull_requests(
+    workflow: dict[str, Any],
+) -> None:
+    assert workflow["on"]["push"] == {"branches": ["main"]}
+    for name in ("checks", "wheel", "eval"):
+        assert "'push'" in workflow["jobs"][name]["if"], name
+
+
+def test_the_nightly_cannot_run_on_a_push_and_unconfigured_it_says_so(
+    workflow: dict[str, Any],
+) -> None:
+    jobs = workflow["jobs"]
+    for name in ("nightly", "nightly-skipped"):
+        condition = jobs[name]["if"]
+        assert "'push'" not in condition and "'pull_request'" not in condition, name
+        assert "schedule" in condition, name
+    assert "vars.JUDGE_PROVIDER != ''" in jobs["nightly"]["if"]
+    assert "vars.JUDGE_PROVIDER == ''" in jobs["nightly-skipped"]["if"]
+    assert "SKIPPED" in jobs["nightly-skipped"]["name"]
+    text = " ".join(s.get("run", "") for s in jobs["nightly-skipped"]["steps"])
+    assert "JUDGE_PROVIDER is not set" in text and "Nothing was graded" in text
+
+
+def test_the_nightly_fails_unless_it_graded(workflow: dict[str, Any]) -> None:
+    run = next(s["run"] for s in workflow["jobs"]["nightly"]["steps"] if s.get("name") == "Evaluate")
+    # Exit 1 (the simulator's known findings) is reported; every other non-zero is propagated.
+    assert "PIPESTATUS[0]" in run and 'exit "$rc"' in run
+    assert "-f reports/nightly.json" in run, "exit 1 only counts as graded if a report exists"
 
 
 def test_the_gating_jobs_do_not_touch_the_hr_example(workflow: dict[str, Any]) -> None:
