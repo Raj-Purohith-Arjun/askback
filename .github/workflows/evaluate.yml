@@ -8,9 +8,10 @@
 #   eval       pull requests from this repository, and pushes to main. Grades the built-in demo
 #              agent against the bundled example suite. Green on a clean checkout; a red one is a
 #              real regression.
-#   demo-hr    pull requests from this repository. A DEMONSTRATION, not a gate: it grades the HR
-#              example simulator, which is red on purpose (examples/hr/README.md says why). It is
-#              `continue-on-error`, so it can never fail a pull request. Do not make it required.
+#   demo-hr    pull requests from this repository. Grades the HR example simulator, which is red
+#              on purpose (examples/hr/README.md says why), so exit 1 passes. It FAILS on a
+#              regression against the committed baseline (exit 2), on a run that could not be
+#              judged (exit 3), and on an unexpected green (exit 0: a check stopped checking).
 #   eval-fork  pull requests from a fork. Runs nothing; says why `eval` was skipped.
 #   nightly    on a schedule or by hand, and only when a model judge is configured
 #              (`vars.JUDGE_PROVIDER`). The HR demonstration graded by a model judge, under a
@@ -25,8 +26,9 @@
 # the nightly failed at its first real step on every run, `continue-on-error` turned that into a
 # successful workflow run, 14 runs never started at all (an account billing lock) and still read
 # green, and the test suite had never run on GitHub because `checks` was pull-request-only. Do not
-# put `continue-on-error` on a job to hide that it did not run. The one remaining use, `demo-hr`,
-# exists because that job is expected to be red.
+# put `continue-on-error` on a job to hide that it did not run. No job in this file has it, and
+# a test fails if one gains it. A job that is expected to be red (`demo-hr`) handles its expected
+# exit code explicitly instead.
 #
 # The badge in the README is pinned to `event=push` on `main`, so the scheduled runs, which skip
 # every job that matters on a push, cannot colour it.
@@ -187,15 +189,14 @@ jobs:
           if-no-files-found: warn
 
   demo-hr:
-    name: "DEMONSTRATION: HR simulator (expected to be red; informational, not a gate)"
+    name: "HR simulator: expected red, gated on regression against its baseline"
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Never fails the pull request. The simulator has real flaws on purpose, and a red run here
-    # is the tool working, not a defect in the change under review.
-    continue-on-error: true
+    # NO `continue-on-error`. The simulator has real flaws on purpose, so exit 1 (a gate failed) is
+    # the expected result and passes. Everything else fails the job: see the Evaluate step.
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -206,17 +207,47 @@ jobs:
       - name: Install
         run: pip install -e .
       - name: Evaluate the HR simulator against its committed baseline
+        # Exit codes, and what each means for this deliberately-red example:
+        #   1  PASS. A gate failed, as designed (28 critical findings; examples/hr/README.md).
+        #   2  FAIL. A regression against the committed baseline: what the baseline is for.
+        #   3  FAIL. The run could not be judged. Unmeasured never passes (invariant 8).
+        #   0  FAIL. A deliberately red example turned green: a check stopped checking, which is a
+        #      worse signal than a failure. Do not fix it by relaxing an expectation (invariant 9).
+        # Exit 1 also needs a report on disk: no report means nothing was graded.
         run: |
+          # GitHub's bash runs with -e and pipefail; turn -e off so askback's own status can be read.
+          set +e
           python -m askback --config examples/hr/config.yaml eval --quiet \
             --format json,html,md --redaction ci --compare-baseline \
             --reports-dir reports --name demo-hr | tee demo-hr.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "askback exited $rc" | tee -a demo-hr.log
+          case "$rc" in
+            1)
+              if [ -f reports/demo-hr.json ]; then
+                echo "::notice title=HR example is red, as designed::exit 1 with a report: the simulator's known findings."
+                exit 0
+              fi
+              echo "::error title=HR example wrote no report::exit 1 but nothing was graded."
+              exit 1 ;;
+            2) echo "::error title=Regression against the HR baseline::exit 2. A case that passed in the committed baseline no longer does."
+               exit 2 ;;
+            3) echo "::error title=HR example could not be judged::exit 3. Unmeasured never passes."
+               exit 3 ;;
+            0) echo "::error title=The deliberately-red HR example is GREEN::exit 0. The simulator has known critical findings, so a pass means a check stopped checking (or the example was edited to pass). Investigate before anything else."
+               exit 10 ;;
+            *) echo "::error title=HR example failed unexpectedly::exit $rc."
+               exit "$rc" ;;
+          esac
       - name: Job summary
         if: ${{ !cancelled() }}
         run: |
           {
-            echo "## Demonstration: the HR simulator"
+            echo "## The HR simulator: expected red, gated on regression"
             echo
-            echo "**This run is expected to be red and does not gate the pull request.** The"
+            echo "**Exit 1 (its known findings) passes. A regression against the committed"
+            echo "baseline, a run that could not be judged, or an unexpected green all fail.** The"
             echo "simulator has real flaws that these suites exist to catch; see"
             echo "\`examples/hr/README.md\`. What matters here is the *regression comparison*: a"
             echo "case that newly fails against the committed baseline."

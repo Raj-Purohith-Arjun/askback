@@ -40,7 +40,7 @@ weights and vocabulary were developed against HR text, and have run on little el
 | The 101 HR cases (8 YAML suites, `routing.json`, `smoke.csv`), the 30-chunk corpus, the intent catalogue, the HR baseline, the judge-calibration records | **Moved** to `examples/hr/` (`datasets/`, `corpus/`, `intents.yaml`, `baselines/`, `calibration/`). |
 | The simulator, `src/askback_sim/` | **Left in place, and excluded from the wheel.** Importable from a source checkout. |
 | The findings about the simulator (previously a separate findings document) | Summarised in `examples/hr/README.md`. |
-| CI | The PR gate is the built-in example suite, which is green. The HR simulator runs as a separate non-gating job labelled a demonstration. |
+| CI | The PR gate is the built-in example suite, which is green. The HR simulator runs as a separate job that is expected to be red: its known findings (exit 1) pass, and a regression against its baseline, a run that could not be judged, or an unexpected green fails it. |
 | `examples/toy-agent` | **Open.** A canned FAQ bot whose topics are leave, expenses and probation; it works, and reads as HR. |
 | `examples/socketio-agent` | **Open.** Its behaviour is generic, but it reports `route: policy_agent` and cites `HR-001`. |
 | `tests/` fixtures (an HR corpus in `conftest.py`) | Fine for a test suite. Not shipped. |

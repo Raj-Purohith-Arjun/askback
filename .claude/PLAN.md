@@ -179,12 +179,17 @@ at all (an account billing lock) yet still read green. That is invariants 1 and 
 own CI. It jumped the queue because a badge over a CI that cannot fail is worse than no badge.
 
 **Touches.** `.github/workflows/evaluate.yml`, `tests/test_workflow.py`, `README.md` (the CI
-paragraph and the badge URL), `.claude/PLAN.md`.
+paragraph and the badge URL), `.claude/PLAN.md`, `docs/HR-COUPLING-AUDIT.md` (one row).
 
 **Do.**
 - `checks`, `wheel` and `eval` also run on a push to `main`.
 - Remove `continue-on-error` from `nightly`. Exit 1 (the simulator's known findings) is reported
   inside the step and does not fail the job; any other exit, or no report, is red.
+- Remove `continue-on-error` from `demo-hr` too, with the same explicit handling: exit 1 (red by
+  design, 28 critical findings) passes **only if a report exists**; exit 2 (regression against
+  the committed baseline), exit 3 (could not be judged) and exit 0 (a deliberately red example
+  turned green: a check stopped checking) all fail. No job in the file may carry
+  `continue-on-error`, and a test says so.
 - The nightly runs only when `vars.JUDGE_PROVIDER` is set. When it is not, `nightly-skipped` runs
   instead and says, in its name, an annotation and the run summary, that nothing was graded and
   why. A half-configured judge (provider set, prices missing) still fails loudly in
@@ -198,9 +203,10 @@ paragraph and the badge URL), `.claude/PLAN.md`.
 `nightly-skipped`, not a green `nightly`.
 
 **Watch.** The billing lock is the owner's, not this step's: do not "fix" it in the repository.
-`demo-hr` still has `continue-on-error` and so can hide a regression against its baseline (exit
-2) as well as its expected red (exit 1). Deliberately left; deciding whether a regression there
-should fail a PR is a separate call.
+`demo-hr` is now a gate on pull requests (regression, unjudgeable, unexpected green). It is the
+job most likely to fail for a reason in the PR rather than in the code: read its summary before
+assuming the change is wrong. **Scope correction:** `docs/HR-COUPLING-AUDIT.md` was added to
+Touches after the fact, because its CI row called this job non-gating, which is no longer true.
 
 ## 0.3 Widen the Python matrix to what actually works
 

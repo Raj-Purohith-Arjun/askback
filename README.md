@@ -362,8 +362,9 @@ Excel and markdown are rendered from it. `reports/` is gitignored.
 
 **CI.** [`.github/workflows/evaluate.yml`](.github/workflows/evaluate.yml) is the template:
 lint, types and tests on every pull request and every push to `main`; the built-in example suite as
-the gate (green on a clean checkout); the HR simulator as a separate, **non-gating** demonstration
-that is expected to be red; nothing for forks (no secrets, never `pull_request_target`); and a
+the gate (green on a clean checkout); the HR simulator, which is red on purpose, so its known
+findings pass and a regression against its baseline, a run that could not be judged, or an
+unexpected green fails; nothing for forks (no secrets, never `pull_request_target`); and a
 nightly run with a model judge under a spending ceiling. The nightly runs only when a judge is
 configured; with none it reports itself **skipped, with the reason**, and a nightly that cannot
 grade is red, never green. Actions are pinned by commit SHA and dev tools by `constraints.txt`.
