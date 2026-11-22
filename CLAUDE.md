@@ -190,7 +190,7 @@ it never falls back to a default.
 
 ## 6. Conventions
 
-- Python >= 3.11 (the version floor is what has been run: 3.11 and 3.14).
+- Python >= 3.11 (the floor is 3.11; CI runs 3.11, 3.12, 3.13 and 3.14).
   `from __future__ import annotations` everywhere.
 - **`mypy --strict` must pass.** No new `# type: ignore` without a comment saying why.
   Strict covers every module under `src/`. There is no exemption list; do not start one -

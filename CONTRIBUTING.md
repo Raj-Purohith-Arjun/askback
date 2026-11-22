@@ -21,7 +21,7 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -c constraints.txt -e ".[all,dev]"
 ```
 
-Python 3.11 or newer (3.11 and 3.14 are what CI runs). `constraints.txt` pins ruff, mypy and
+Python 3.11 or newer (CI runs 3.11, 3.12, 3.13 and 3.14). `constraints.txt` pins ruff, mypy and
 pytest to the versions the checks were verified against, so a tool release cannot turn CI red
 for a reason that is not in your diff.
 

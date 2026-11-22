@@ -24,22 +24,40 @@ Rules for whoever is executing, human or model:
 1. **One step per commit**, conventional-commit style, with the `Co-Authored-By` trailer.
 2. **The gate runs before the commit, every time**: `ruff check src tests tools examples &&
    mypy src && pytest --strict-env`. A step that fails its own gate is not committed.
-3. **Status lives in this file.** Mark a step `[x]` in the index when its commit lands, with
-   the short sha. A plan whose status is in someone's head is not a plan.
+3. **Status lives in this file.** Mark a step `[x]` in the index when its commit lands *and its
+   Done-when has been observed*, with the short sha. A plan whose status is in someone's head is
+   not a plan. If the commit has landed but the Done-when cannot yet be observed, the step is
+   `[~]`, not `[x]` (rule 7).
 4. **A step that turns out to be wrong gets struck, with the reason** — not silently dropped.
    The reason is the most valuable line in the file.
 5. **Never relax an expectation to make a step pass** (invariant 9). If a step's change moves
    a verdict, measure how many moved, decide on the merits, and record the number.
 6. **Do not do two steps in one commit** because they are both small. The point of the
    sequence is that any one of them can be reverted alone.
+7. **`[~]` means: work landed, verification blocked externally.** The commit or commits are in,
+   the gate passed, and the step's Done-when cannot be observed until something outside the
+   repository happens (a registry accepting a publisher, a release being published, a third
+   party responding). The index line for a `[~]` step must carry the shas that landed *and* the
+   specific external event it is waiting on. Three limits, so the marker cannot become a place
+   to hide:
+   - `[~]` is never `[x]`. It becomes `[x]` only when the Done-when is observed, never on the
+     expectation that it will be. Unverified never passes (invariant 8, applied to the plan).
+   - It is not a parking state for a step whose gate failed. A failing gate means no commit
+     (rule 2), so there is nothing to mark.
+   - Later steps may proceed past a `[~]` step only if they do not depend on its Done-when.
+     If one does, say so on that step.
 
 ---
 
 ## Index
 
+Markers: `[ ]` not done · `[~]` work landed, verification blocked externally (rule 7) · `[x]`
+done and observed.
+
 Phase 0 — a stranger can install it
-- [ ] `0.1` Publish to PyPI through trusted publishing — **merged with 0.2 and done FIRST** (see 0.1)
+- [~] `0.1` Publish to PyPI through trusted publishing — **merged with 0.2 and done FIRST** (see 0.1). Landed in `179eb7d`, `a8772fd`. Waiting on: tag v0.1.0 pushed and a GitHub release published (which fires the pypi job in release.yml). The trusted publisher is registered and verified on pypi.org. Done-when (`pip install askback` from a fresh container) cannot be observed until the package exists on PyPI.
 - [ ] `0.2` Tag v0.1.0 and cut the release — **merged into 0.1**; one release, one pass
+- [ ] `0.2b` Make CI honest: checks on push, no masked failures, a nightly that says it did not run — **jumped the queue ahead of 0.4** (see 0.2b)
 - [ ] `0.3` Widen the Python matrix to what actually works
 - [ ] `0.4` Badges and repository metadata
 - [ ] `0.5` Issue and PR templates, CODEOWNERS
@@ -97,7 +115,14 @@ Phase 5 — ecosystem
 of this assumes it works. The name is unclaimed as of this writing, which is a standing risk:
 names in this field go quickly.
 
-**Touches.** `.github/workflows/release.yml` (new), `pyproject.toml`, `CHANGELOG.md`.
+**Touches.** `.github/workflows/release.yml` (new), `pyproject.toml`, `CHANGELOG.md`,
+`MANIFEST.in`.
+
+**Scope correction, 2026-11-21.** `MANIFEST.in` was **added to Touches after the fact**. The
+original list omitted it, but the sdist decision below depends on it (`MANIFEST.in` is what
+prunes `tests/`), so the step was mis-scoped as written. It is corrected here, visibly, rather
+than silently; by this plan's own rule, a step that needs a file outside its list has been
+mis-scoped, and this one was.
 
 **Do.**
 - New workflow, triggered on a published release, with `permissions: id-token: write` and
@@ -143,6 +168,46 @@ announcement land.
 
 **Done when.** `pip install askback==0.1.0` works, and the release page states the limitation.
 
+## 0.2b Make CI honest before a badge points at it
+
+**Why.** 0.4 adds a CI badge, and the badge as it stood was green while nothing ran. Found by
+reading all 39 runs of `evaluate.yml` (`docs/` has no copy; the finding is summarised here):
+`checks` was pull-request-only, so the 769-test suite had never run on GitHub; the one job that
+did run on a schedule, `nightly`, failed at "Switch the model judge on" on every run and
+`continue-on-error: true` turned that into a successful workflow run; and 14 runs never started
+at all (an account billing lock) yet still read green. That is invariants 1 and 8 broken in our
+own CI. It jumped the queue because a badge over a CI that cannot fail is worse than no badge.
+
+**Touches.** `.github/workflows/evaluate.yml`, `tests/test_workflow.py`, `README.md` (the CI
+paragraph and the badge URL), `.claude/PLAN.md`, `docs/HR-COUPLING-AUDIT.md` (one row).
+
+**Do.**
+- `checks`, `wheel` and `eval` also run on a push to `main`.
+- Remove `continue-on-error` from `nightly`. Exit 1 (the simulator's known findings) is reported
+  inside the step and does not fail the job; any other exit, or no report, is red.
+- Remove `continue-on-error` from `demo-hr` too, with the same explicit handling: exit 1 (red by
+  design, 28 critical findings) passes **only if a report exists**; exit 2 (regression against
+  the committed baseline), exit 3 (could not be judged) and exit 0 (a deliberately red example
+  turned green: a check stopped checking) all fail. No job in the file may carry
+  `continue-on-error`, and a test says so.
+- The nightly runs only when `vars.JUDGE_PROVIDER` is set. When it is not, `nightly-skipped` runs
+  instead and says, in its name, an annotation and the run summary, that nothing was graded and
+  why. A half-configured judge (provider set, prices missing) still fails loudly in
+  "Switch the model judge on".
+- The README badge is pinned to `branch=main&event=push`, so the scheduled runs cannot colour it.
+- The workflow header states the rule in terms of invariants 1 and 8, and a test fails if a job
+  other than `demo-hr` gets `continue-on-error`.
+
+**Done when.** A pull request's `checks` jobs ran on GitHub and are green on their own merits
+(or red for a real reason, recorded), and a run of the nightly with `JUDGE_PROVIDER` unset shows
+`nightly-skipped`, not a green `nightly`.
+
+**Watch.** The billing lock is the owner's, not this step's: do not "fix" it in the repository.
+`demo-hr` is now a gate on pull requests (regression, unjudgeable, unexpected green). It is the
+job most likely to fail for a reason in the PR rather than in the code: read its summary before
+assuming the change is wrong. **Scope correction:** `docs/HR-COUPLING-AUDIT.md` was added to
+Touches after the fact, because its CI row called this job non-gating, which is no longer true.
+
 ## 0.3 Widen the Python matrix to what actually works
 
 **Why.** CI tests 3.11 and 3.14. `requires-python` admits `>=3.11`, so 3.12 and 3.13 are
@@ -151,7 +216,14 @@ those two. Either test them or narrow the claim; a claim you have not run is the
 this repository's own documentation refuses to make elsewhere.
 
 **Touches.** `.github/workflows/evaluate.yml`, `pyproject.toml` (classifiers), `README.md`,
-`CONTRIBUTING.md`, `CLAUDE.md` §6.
+`CONTRIBUTING.md`, `CLAUDE.md` §6, `docs/ROADMAP.md`.
+
+**Scope correction, 2026-11-21.** `docs/ROADMAP.md` was **added to Touches after the fact**.
+Its Phase 0 bullet stated that CI tests only 3.11 and 3.14, which this step makes false, so the
+original list was incomplete. Two stale-but-true mentions were deliberately left: the
+`pyproject.toml` comment and `constraints.txt` both record what has actually been run, and are
+updated when four green jobs exist, not before. The `CHANGELOG.md` 0.1.0 entries are historical
+and stay as written.
 
 **Do.** Matrix `["3.11", "3.12", "3.13", "3.14"]`. Add the classifiers. Correct every sentence
 that says "3.11 and 3.14 are what CI runs" — there are several, in README, CONTRIBUTING and
@@ -167,7 +239,8 @@ CLAUDE.md, and they must move together.
 repository gets found by someone who did not come looking for it; a social preview image is
 most of the difference in how a shared link converts.
 
-**Touches.** `README.md`, repository settings (manual), `.github/` (image asset).
+**Touches.** `README.md`, `docs/ROADMAP.md` (the one-line wedge), repository settings (manual),
+`.github/` (image asset).
 
 **Do.**
 - Badges, under the title, that are all live checks: PyPI version, Python versions, CI status,
@@ -176,8 +249,12 @@ most of the difference in how a shared link converts.
   put a single-line version above it.
 - Topics: `llm-evaluation`, `agent-evaluation`, `conversational-ai`, `chatbot-testing`,
   `rag-evaluation`, `llm-testing`, `ci`, `python`, `llmops`, `red-teaming`, `multi-turn`.
-- Description: the wedge in one line (`docs/ROADMAP.md` has it), under 120 characters so it is
-  not truncated in search results.
+- Description: the wedge in one line, under 120 characters so it is not truncated in search
+  results. **That line does not exist yet.** `docs/ROADMAP.md` carries the wedge as a
+  two-sentence blockquote, not a one-liner, so write the line first, in this step, into
+  `docs/ROADMAP.md` beside the blockquote, and use that exact text for the repository
+  description, the single line above the badges, and the social preview image. One line, one
+  home; check its length with a command, not by eye.
 - A social preview image, 1280×640. Plain: name, the one-line wedge, a terminal fragment
   showing a real failure. Not a logo exercise.
 

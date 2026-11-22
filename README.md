@@ -1,5 +1,12 @@
 # askback
 
+Test a deployed conversational agent over its own transport, across several turns, as more than one user.
+
+[![PyPI version](https://img.shields.io/pypi/v/askback)](https://pypi.org/project/askback/)
+[![Python versions](https://img.shields.io/pypi/pyversions/askback)](https://pypi.org/project/askback/)
+[![CI](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml/badge.svg?branch=main&event=push)](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml)
+[![License](https://img.shields.io/github/license/Raj-Purohith-Arjun/askback)](LICENSE)
+
 **Test a conversational agent the way it is actually used: over several turns, against its
 own sources, as different users.** Ordinary API testing checks that an endpoint returns 200
 and a plausible string. It cannot tell you that the bot invented a policy and cited it, lost
@@ -16,7 +23,7 @@ gate on.
 | **Your first run is green, and means little.** | `askback eval` with no arguments grades a small canned demo agent against a bundled example suite and passes (8 of 8). It proves the install works and shows what a passing run looks like. It says nothing about your agent. |
 | **HR is the worked example, not the scope.** | The framework's logic is general. The one large example is an HR assistant under [`examples/hr`](examples/hr/README.md), and the default config and suite are neutral. [docs/HR-COUPLING-AUDIT.md](docs/HR-COUPLING-AUDIT.md) lists what is still HR-shaped. |
 | **That HR example is red, on purpose.** | `askback --config examples/hr/config.yaml eval` exits `1`: 81 of 101 cases pass and 28 critical checks fail. They are the *simulator's* real flaws, kept as findings: invented policies answered with citations, escalations that never reach a human, cross-user requests not refused, earlier turns ignored. A red run there means the tool is working. |
-| **Python 3.11 or newer.** | Run and tested on 3.11 and 3.14. Nothing older is claimed. |
+| **Python 3.11 or newer.** | CI runs 3.11, 3.12, 3.13 and 3.14. Nothing older is claimed. |
 
 ## Will it work for my agent?
 
@@ -354,11 +361,13 @@ anything where the answer itself is sensitive, use `metrics_only`. The JSON is c
 Excel and markdown are rendered from it. `reports/` is gitignored.
 
 **CI.** [`.github/workflows/evaluate.yml`](.github/workflows/evaluate.yml) is the template:
-lint, types and tests on every pull request; the built-in example suite as the PR gate (green on
-a clean checkout); the HR simulator as a separate, **non-gating** demonstration that is expected
-to be red; nothing for forks (no secrets, never `pull_request_target`); and a nightly run with a
-model judge under a spending ceiling. Actions are pinned by commit SHA and dev tools by
-`constraints.txt`.
+lint, types and tests on every pull request and every push to `main`; the built-in example suite as
+the gate (green on a clean checkout); the HR simulator, which is red on purpose, so its known
+findings pass and a regression against its baseline, a run that could not be judged, or an
+unexpected green fails; nothing for forks (no secrets, never `pull_request_target`); and a
+nightly run with a model judge under a spending ceiling. The nightly runs only when a judge is
+configured; with none it reports itself **skipped, with the reason**, and a nightly that cannot
+grade is red, never green. Actions are pinned by commit SHA and dev tools by `constraints.txt`.
 
 ## Known limitations
 

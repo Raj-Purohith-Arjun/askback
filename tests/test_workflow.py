@@ -44,11 +44,62 @@ def test_it_never_uses_pull_request_target(workflow: dict[str, Any]) -> None:
     assert workflow["permissions"] == {"contents": "read"}
 
 
-def test_the_hr_demonstration_can_never_fail_a_pull_request(workflow: dict[str, Any]) -> None:
+def test_the_hr_example_passes_only_on_its_expected_exit(workflow: dict[str, Any]) -> None:
+    # The example is red on purpose, so exit 1 is its expected result. A regression (2), a run that
+    # could not be judged (3) and an unexpected green (0) must each fail the job.
+    run = next(s["run"] for s in workflow["jobs"]["demo-hr"]["steps"] if "Evaluate" in s.get("name", ""))
+    assert "--compare-baseline" in run and "PIPESTATUS[0]" in run
+    body = run.split('case "$rc" in', 1)[1].rsplit("esac", 1)[0]
+    pieces = re.split(r"^ {2}(\d|\*)\)", body, flags=re.M)  # [preamble, label, text, label, text...]
+    arms = dict(zip(pieces[1::2], pieces[2::2], strict=True))
+    assert set(arms) == {"1", "2", "3", "0", "*"}, sorted(arms)
+    passes = re.compile(r"^\s*exit 0\b", re.M)  # an actual `exit 0`, not the words in a message
+    assert passes.search(arms["1"]) and "-f reports/demo-hr.json" in arms["1"], "exit 1 needs a report"
+    for code in ("2", "3", "0", "*"):
+        assert not passes.search(arms[code]), f"exit code {code} must not pass"
+        assert "::error" in arms[code], code
+    assert "GREEN" in arms["0"], "an unexpected green must say why it is a failure"
+
+
+def test_no_job_can_hide_a_failure_behind_continue_on_error(workflow: dict[str, Any]) -> None:
+    # Invariants 1 and 8 applied to CI. The nightly used to carry continue-on-error, failed at its
+    # first real step on every run, and reported green; `demo-hr` carried it and so could have
+    # hidden a regression against its baseline. No job is exempt: one that is expected to be red
+    # handles its expected exit code explicitly instead.
+    masked = [n for n, j in workflow["jobs"].items() if "continue-on-error" in j]
+    assert not masked, f"{masked} carry continue-on-error"
+    steps = [s.get("name") for s in _steps(workflow) if "continue-on-error" in s]
+    assert not steps, f"steps {steps} carry continue-on-error"
+
+
+def test_the_suite_runs_on_a_push_to_main_not_only_on_pull_requests(
+    workflow: dict[str, Any],
+) -> None:
+    assert workflow["on"]["push"] == {"branches": ["main"]}
+    for name in ("checks", "wheel", "eval"):
+        assert "'push'" in workflow["jobs"][name]["if"], name
+
+
+def test_the_nightly_cannot_run_on_a_push_and_unconfigured_it_says_so(
+    workflow: dict[str, Any],
+) -> None:
     jobs = workflow["jobs"]
-    for name in ("demo-hr", "nightly"):
-        assert jobs[name]["continue-on-error"] is True, name
-    assert "DEMONSTRATION" in jobs["demo-hr"]["name"]
+    for name in ("nightly", "nightly-skipped"):
+        condition = jobs[name]["if"]
+        assert "'push'" not in condition and "'pull_request'" not in condition, name
+        assert "schedule" in condition, name
+    assert "vars.JUDGE_PROVIDER != ''" in jobs["nightly"]["if"]
+    assert "vars.JUDGE_PROVIDER == ''" in jobs["nightly-skipped"]["if"]
+    assert "SKIPPED" in jobs["nightly-skipped"]["name"]
+    text = " ".join(s.get("run", "") for s in jobs["nightly-skipped"]["steps"])
+    assert "JUDGE_PROVIDER is not set" in text and "Nothing was graded" in text
+
+
+def test_the_nightly_fails_unless_it_graded(workflow: dict[str, Any]) -> None:
+    run = next(s["run"] for s in workflow["jobs"]["nightly"]["steps"] if s.get("name") == "Evaluate")
+    # Exit 1 (the simulator's known findings) is reported; every other non-zero is propagated.
+    assert "PIPESTATUS[0]" in run and 'exit "$rc"' in run
+    assert "-f reports/nightly.json" in run, "exit 1 only counts as graded if a report exists"
 
 
 def test_the_gating_jobs_do_not_touch_the_hr_example(workflow: dict[str, Any]) -> None:
