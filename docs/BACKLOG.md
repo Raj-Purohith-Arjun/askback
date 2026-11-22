@@ -65,22 +65,3 @@ against, and building them on the simulator's replies would fit them to the simu
   refresh; the `/signin` and `/verifyotp` request fields, and where a test identity's OTP
   comes from, are the target's. `examples/socketio-agent/auth.py` is the shape, not the
   contract.
-
-## Dependency updates
-
-- **Dependabot may not read `constraints.txt`.** The pip ecosystem is understood to scan
-  `requirements*.txt` and `pyproject.toml` only; GitHub's documentation does not say either
-  way. If so, the dev-tool and release-tool pins (ruff, mypy, pytest, pytest-cov, build,
-  twine) get no Dependabot pull requests, and 0.6's purpose — nothing updates unless
-  something updates it — is only half met for them.
-  **Confirm by observation first:** after Dependabot's first run, check whether any pull
-  request touches `constraints.txt`. If one does, delete this entry.
-  If none does, the fix is to pin the dev tools in `pyproject.toml`'s `dev` extra, which
-  Dependabot does read. Renaming `constraints.txt` would also work and is worse: it touches
-  CLAUDE.md, CONTRIBUTING.md, the workflows and the tests.
-  Two questions to answer then, not now:
-  - `build` and `twine` are installed by `release.yml` outside the `dev` extra, so they need
-    their own home — a `release` extra, or staying in `constraints.txt`.
-  - Versions would then live in two files. `tests/test_workflow.py` reads `constraints.txt`
-    for the ruff, mypy and pytest pins, so either one file stops holding them or a test
-    asserts the two agree. One source of truth; drift here is silent.

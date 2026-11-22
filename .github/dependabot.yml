@@ -2,12 +2,9 @@
 # something does. This is the something: it bumps the SHA and rewrites the release comment beside
 # it. Weekly, and grouped so a week's bumps are one pull request, not a stream of them.
 #
-# Whether Dependabot's pip updater reads `constraints.txt` is UNCONFIRMED: the filename is not
-# documented as read (the updater is understood to look at requirements*.txt and pyproject.toml),
-# and that is all we know. Until it is observed, do not assume the dev-tool and release-tool pins
-# there get pull requests. docs/BACKLOG.md, "Dependency updates", records the check to make after
-# the first run and what to do either way. This config covers pyproject.toml's declared
-# dependencies and the workflow actions.
+# Observed, not documented: Dependabot's first run (2026-11-22) opened a pull request bumping the
+# pins in constraints.txt, so the pip updater does read it. This config covers pyproject.toml's
+# declared dependencies, constraints.txt and the workflow actions.
 version: 2
 updates:
   - package-ecosystem: github-actions
