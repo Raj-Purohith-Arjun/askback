@@ -71,8 +71,8 @@ Phase 0 — a stranger can install it
 - [ ] `0.8` README: install first, clone second
 
 Phase 1 — first contact with a real agent
-- [ ] `1.1` Pick five real agents and record the shortlist
-- [ ] `1.2` Validation harness and the shape of a validation record
+- [x] `1.1` Pick five real agents and record the shortlist — `f766e80`
+- [x] `1.2` Validation harness and the shape of a validation record — `39d2751`
 - [ ] `1.3`–`1.7` One real agent each (repeat the same step five times)
 - [ ] `1.8` Fix what contact broke, measuring each verdict change
 - [ ] `1.9` Rewrite the README Status table against the evidence
