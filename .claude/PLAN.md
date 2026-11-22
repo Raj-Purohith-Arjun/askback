@@ -175,7 +175,14 @@ those two. Either test them or narrow the claim; a claim you have not run is the
 this repository's own documentation refuses to make elsewhere.
 
 **Touches.** `.github/workflows/evaluate.yml`, `pyproject.toml` (classifiers), `README.md`,
-`CONTRIBUTING.md`, `CLAUDE.md` §6.
+`CONTRIBUTING.md`, `CLAUDE.md` §6, `docs/ROADMAP.md`.
+
+**Scope correction, 2026-11-21.** `docs/ROADMAP.md` was **added to Touches after the fact**.
+Its Phase 0 bullet stated that CI tests only 3.11 and 3.14, which this step makes false, so the
+original list was incomplete. Two stale-but-true mentions were deliberately left: the
+`pyproject.toml` comment and `constraints.txt` both record what has actually been run, and are
+updated when four green jobs exist, not before. The `CHANGELOG.md` 0.1.0 entries are historical
+and stay as written.
 
 **Do.** Matrix `["3.11", "3.12", "3.13", "3.14"]`. Add the classifiers. Correct every sentence
 that says "3.11 and 3.14 are what CI runs" — there are several, in README, CONTRIBUTING and

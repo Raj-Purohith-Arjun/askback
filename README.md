@@ -16,7 +16,7 @@ gate on.
 | **Your first run is green, and means little.** | `askback eval` with no arguments grades a small canned demo agent against a bundled example suite and passes (8 of 8). It proves the install works and shows what a passing run looks like. It says nothing about your agent. |
 | **HR is the worked example, not the scope.** | The framework's logic is general. The one large example is an HR assistant under [`examples/hr`](examples/hr/README.md), and the default config and suite are neutral. [docs/HR-COUPLING-AUDIT.md](docs/HR-COUPLING-AUDIT.md) lists what is still HR-shaped. |
 | **That HR example is red, on purpose.** | `askback --config examples/hr/config.yaml eval` exits `1`: 81 of 101 cases pass and 28 critical checks fail. They are the *simulator's* real flaws, kept as findings: invented policies answered with citations, escalations that never reach a human, cross-user requests not refused, earlier turns ignored. A red run there means the tool is working. |
-| **Python 3.11 or newer.** | Run and tested on 3.11 and 3.14. Nothing older is claimed. |
+| **Python 3.11 or newer.** | CI runs 3.11, 3.12, 3.13 and 3.14. Nothing older is claimed. |
 
 ## Will it work for my agent?
 

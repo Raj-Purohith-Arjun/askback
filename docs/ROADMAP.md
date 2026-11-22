@@ -65,8 +65,8 @@ nothing. Nothing else is worth doing first.
 - Claim the `askback` name on PyPI and publish 0.1.0 through **trusted publishing** (OIDC, no
   long-lived token in the repo), with attestations.
 - Tag `v0.1.0`, cut a GitHub release whose notes are the CHANGELOG section.
-- Add the Python versions that work to CI. The suite passes on 3.13 today and CI tests only
-  3.11 and 3.14; most users are on 3.12 or 3.13 and `requires-python` already admits them.
+- Add the Python versions that work to CI. The suite passes on 3.13 today and CI now runs
+  3.11, 3.12, 3.13 and 3.14; most users are on 3.12 or 3.13 and `requires-python` already admits them.
   Either test them or stop claiming them.
 - Badges that are checks, not decoration: PyPI version, Python versions, CI, licence, coverage.
 - Repository metadata: description, topics, a social preview image. A link shared without a
