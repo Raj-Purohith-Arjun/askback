@@ -70,7 +70,9 @@ jobs:
 
       - name: Build
         run: |
-          python -m pip install build twine
+          # Constrained: `build` and `twine` produce and check what ships, so they are pinned in
+          # constraints.txt like the dev tools, not floated.
+          python -m pip install -c constraints.txt build twine
           python -m build --outdir dist
           ls -l dist
 

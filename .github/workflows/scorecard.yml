@@ -1,0 +1,46 @@
+# OpenSSF Scorecard: grades the repository's own supply-chain hygiene and publishes the result,
+# which is what the README badge reads.
+#
+# Scheduled, plus a manual run so the first result (and so the badge) need not wait for the cron.
+#
+# `publish_results: true` is accepted by the Scorecard service only for a workflow it can verify:
+# it must be this shape, with no extra steps, no `env`, and no write permission at the top level.
+# That is why the top level is read-only and the job asks for exactly three permissions. Do not
+# add a step here; put new automation in its own workflow.
+#
+# Some checks (branch protection among them) need a token with more than GITHUB_TOKEN can do and
+# will report low or "could not determine" until one is configured. That is the service being
+# honest about what it could not read, not a failure of this workflow.
+#
+# Every action is pinned to a full commit SHA with its release as a comment, as in evaluate.yml.
+
+name: scorecard
+
+on:
+  schedule:
+    - cron: "29 5 * * 2"
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: results.sarif

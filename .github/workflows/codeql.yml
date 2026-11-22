@@ -1,0 +1,44 @@
+# Code scanning for the Python source. Results go to the repository's Security tab.
+#
+# Pull requests and a weekly schedule; there is no `push` trigger, so a change reaches `main`
+# already scanned. `workflow_dispatch` is there so the first run, and any re-run, need not wait for
+# the weekly cron. Python needs no build, hence `build-mode: none`.
+#
+# Permissions are only what the scan needs. `security-events: write` uploads the results and is
+# the reason a pull request from a fork may not be able to upload them (GitHub gives a fork's run
+# a read-only token); the scan itself still runs.
+#
+# Every action is pinned to a full commit SHA with its release as a comment, as in evaluate.yml.
+
+name: codeql
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          languages: python
+          build-mode: none
+      - uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          category: "/language:python"
