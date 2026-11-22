@@ -1,0 +1,30 @@
+# Validation config for AGENT_NAME. Copy `TEMPLATE/` to `examples/validation/<slug>/`, then edit.
+# Run from the repository root:
+#   askback --config examples/validation/<slug>/config.yaml eval --redaction ci
+#
+# Start from what `probe/probe-result.json` showed, not from the agent's documentation, and record
+# every setting you had to decide in RECORD.md section 3. Secrets come from the environment via
+# ${VAR}; never write one here. The agent must be a local container you started (RECORD.md
+# section 0): a URL that is not loopback does not belong in this directory.
+agent:
+  adapter: http                 # or socketio; see config/askback.example.yaml
+  url: ${AGENT_URL:}            # e.g. http://127.0.0.1:PORT/path. An empty value is refused.
+  request_template: {message: "{message}", session_id: "{session_id}"}
+  response_mapping:
+    text: reply                 # the only required field; set the rest ONLY if the probe saw it
+    # status:
+    # route:
+    # citations:
+    # retrieved:
+    # tools:
+  principal_headers:
+    default: {}
+  # `[]` says no tool of this agent has side effects. Leave it unset if you do not know: the check
+  # then fails loudly instead of passing on a list nobody wrote.
+  # side_effecting_tools: []
+
+evaluation:
+  dataset_dir: examples/validation/<slug>/suites
+  # Committed, so it must be redacted. A `--redaction full` run goes under local/ (gitignored).
+  reports_dir: examples/validation/<slug>/report
+  redaction: ci

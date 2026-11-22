@@ -1,0 +1,12 @@
+# Written BEFORE the first run, from what the agent says it does and the documents it was given.
+# Not copied from examples/hr. Each case states what is wrong if it fails. See RECORD.md section 4.
+schema_version: 2
+
+cases:
+  - id: example-factual
+    description: A question the agent's own corpus answers, with the fact it must state.
+    turns:
+      - user: REPLACE WITH A QUESTION
+        expect:
+          expected_status: answered
+          required_facts: ["REPLACE"]

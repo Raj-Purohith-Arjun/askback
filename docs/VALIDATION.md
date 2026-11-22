@@ -178,3 +178,27 @@ Rejected on the maintained requirement, which is why a list of "obvious" picks i
 Costs above are estimates written before any run; each per-agent record replaces its line with
 what was measured. If a stack cannot be stood up on the machine available, the record says so and
 the entry is replaced, not skipped.
+
+## The shape of a record
+
+Each agent gets `examples/validation/<slug>/`, copied from `examples/validation/TEMPLATE/`
+(see its `README.md`): a `config.yaml`, a `suites/` directory, `probe/probe-result.json`, a
+redacted `report/`, and `RECORD.md`. `RECORD.md` has eight required sections: the
+no-foreign-deployment rule, how it was stood up, what the probe saw, what the config needed that
+the probe did not infer, the suite, **which evaluators ran and which skipped and why**, findings
+(each labelled `agent-flaw`, `harness-flaw` or `suite-flaw`), and which shipped defaults were
+wrong on this agent's text.
+
+Fixed before the first run so the five become one table. Each record's header fills one row:
+
+| Agent | Transport result | Evaluator results ran / skipped | Skips traced to a cause (of all) | Findings: agent / harness / suite | Defaults wrong |
+|---|---|---|---|---|---|
+| Ollama | | | | | |
+| Open WebUI | | | | | |
+| PrivateGPT | | | | | |
+| Onyx | | | | | |
+| Dify | | | | | |
+
+The rule that governs all five: no transcript, report or config from a deployment we do not own.
+Every agent above is a container the operator starts locally from a pinned public release, and
+`RECORD.md` section 0 is a checklist that says so before anything else is written.

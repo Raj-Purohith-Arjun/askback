@@ -49,3 +49,12 @@ dist/
 # On-disk judge verdicts (evaluation.judge.cache_path). Keyed on prompt and
 # model, so it is valid anywhere, but it is a cache: rebuilt by running.
 .cache/
+
+# Validation runs (examples/validation/). report/ and probe/ ARE committed: they are the evidence,
+# and are redacted. local/ holds anything unredacted (--redaction full, raw agent responses);
+# a transcript can carry personal data, so it never leaves the machine. Agent data directories
+# mounted inside the tree are ignored for the same reason.
+examples/validation/*/local/
+examples/validation/*/data/
+examples/validation/*/.env*
+examples/validation/*/*.token
