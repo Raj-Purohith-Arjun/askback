@@ -285,5 +285,8 @@ updates - never present demo or simulator numbers as results about the real syst
 - Report "blockers only" rather than an exhaustive edge-case list: things that
   are wrong, unsafe, or that the next step depends on. Curiosities can wait.
 - Tests should be the ones that would catch a real regression, not an exhaustive
-  matrix. Roughly 0.8 test lines per source line is the target; we are below it (about 0.5,
-  counted with `wc -l` over `tests/` and `src/`). Transports are tested over real sockets.
+  matrix. Coverage is measured, not proxied: **90.59% line coverage** of `src/askback` (Python
+  3.14; branch coverage is not measured), enforced in CI by a floor of 90 (`fail_under` in
+  `pyproject.toml`) that only goes up. This replaces the old test-lines-per-source-line target; the
+  "about 0.5" it quoted counted `askback_sim` in the denominator, which is why that proxy
+  understated the framework. Transports are tested over real sockets.

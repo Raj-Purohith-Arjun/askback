@@ -6,6 +6,7 @@ Test a deployed conversational agent over its own transport, across several turn
 [![Python versions](https://img.shields.io/pypi/pyversions/askback)](https://pypi.org/project/askback/)
 [![CI](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml/badge.svg?branch=main&event=push)](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml)
 [![License](https://img.shields.io/github/license/Raj-Purohith-Arjun/askback)](LICENSE)
+[![Line coverage floor 90%](https://img.shields.io/badge/line%20coverage%20floor-90%25-brightgreen)](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Raj-Purohith-Arjun/askback/badge)](https://scorecard.dev/viewer/?uri=github.com/Raj-Purohith-Arjun/askback)
 
 **Test a conversational agent the way it is actually used: over several turns, against its

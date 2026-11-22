@@ -10,6 +10,7 @@ silently matches nothing cannot pass.
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -105,3 +106,32 @@ def test_the_release_tools_are_pinned_in_constraints_and_installed_through_them(
         if "pip install" in s.get("run", "")
     ]
     assert installs and all("-c constraints.txt" in i for i in installs)
+
+
+def test_coverage_is_a_ci_only_line_coverage_floor_on_the_3_14_leg_and_not_in_addopts() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text("utf-8"))
+    assert "--cov" not in pyproject["tool"]["pytest"]["ini_options"]["addopts"], "keeps local pytest fast"
+    floor = pyproject["tool"]["coverage"]["report"]["fail_under"]
+    assert isinstance(floor, int) and floor > 0
+    assert any(d.startswith("pytest-cov") for d in pyproject["project"]["optional-dependencies"]["dev"])
+    steps = _named("evaluate.yml")["jobs"]["checks"]["steps"]
+    covered = [s for s in steps if "--cov" in s.get("run", "")]
+    assert len(covered) == 1, "coverage runs in exactly one step"
+    assert covered[0]["if"] == "matrix.python == '3.14'" and "--cov=askback" in covered[0]["run"]
+    plain = [s for s in steps if s.get("run", "").startswith("pytest") and "--cov" not in s["run"]]
+    assert plain and all(s["if"] == "matrix.python != '3.14'" for s in plain), "no leg runs tests twice"
+
+
+def test_coverage_tools_are_pinned_and_the_readme_badge_states_the_floor() -> None:
+    pinned = {
+        line.split("==")[0].lower()
+        for line in (ROOT / "constraints.txt").read_text("utf-8").splitlines()
+        if "==" in line and not line.startswith("#")
+    }
+    assert {"coverage", "pytest-cov"} <= pinned, "the measuring tools move the number"
+    floor = tomllib.loads((ROOT / "pyproject.toml").read_text("utf-8"))["tool"]["coverage"]["report"][
+        "fail_under"
+    ]
+    badge = re.search(r"line%20coverage%20floor-(\d+)%25", (ROOT / "README.md").read_text("utf-8"))
+    assert badge, "the README has no line-coverage badge"
+    assert int(badge.group(1)) == floor, "the badge and fail_under have drifted apart"

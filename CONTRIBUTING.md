@@ -138,6 +138,23 @@ code, and goes under `examples/hr/datasets/` (graded against the HR simulator), 
 `examples/`. Use invented names and invented policy text only: never text from a real
 organisation's documents, and never a real person's name.
 
+## Coverage, and where to start
+
+CI measures **line coverage** of `src/askback` on the Python 3.14 leg and fails below the floor in
+`pyproject.toml` (`fail_under`, 90 today). Branch coverage is not measured. The floor only goes
+up: raise it in its own commit after coverage has risen, never in the commit that adds the tests.
+Check it yourself with `pytest --cov=askback --cov-report=term-missing`.
+
+The three least-covered modules are the standing good-first-issue list. Percentages are line
+coverage measured on Python 3.14 when the floor was set (90.59% overall); re-measure before you
+start, they will have moved.
+
+| Module | Line coverage | Choose it if |
+|---|---|---|
+| `src/askback/__main__.py` | 0% (4 statements) | You want a first issue. One subprocess test (`python -m askback`) closes it. |
+| `src/askback/cli.py` | 61% (121 of 314 missed) | You are fine working on fixture surface. Most of the gap is the simulator commands (`ask`, `chat`, `info`, `serve`), which belong to the HR example. It is also under-counted: `tests/test_boundaries.py` runs the CLI in a subprocess, which the measurement does not see. |
+| `src/askback/runner/responders.py` | 64% (50 of 138 missed) | You want the highest-value one. The persona and model responder is real framework code that grades clarification answers. |
+
 ## Test floors
 
 `tests/expected_tests.json` records the minimum number of tests each module must

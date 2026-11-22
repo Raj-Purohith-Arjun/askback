@@ -57,7 +57,7 @@ socketio-server = ["flask-socketio>=5.3", "simple-websocket>=1.0"]
 probe = ["python-socketio[client]>=5.11", "websockets>=14"]
 # Excel report output.
 excel = ["openpyxl>=3.1"]
-dev = ["pytest>=8.0", "ruff>=0.6", "mypy>=1.11", "types-PyYAML>=6.0", "respx>=0.21"]
+dev = ["pytest>=8.0", "pytest-cov>=7.0", "ruff>=0.6", "mypy>=1.11", "types-PyYAML>=6.0", "respx>=0.21"]
 all = [
     "fastapi>=0.110",
     "uvicorn>=0.27",
@@ -120,6 +120,15 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+
+# Coverage is measured in CI only (`pytest --cov=askback`, Python 3.14 leg), never in `addopts`, so a
+# local `pytest` stays fast. Run it yourself with `pytest --cov=askback --cov-report=term-missing`.
+[tool.coverage.report]
+# LINE coverage of src/askback, measured on Python 3.14: 90.59% at the commit that set this. Branch
+# coverage is not measured. The floor is the measured figure rounded down, and it only goes up: raise
+# it in a commit of its own, after coverage has risen, never in the same commit as the tests that
+# raised it. Lowering it is a decision to be justified in that commit, not a way to make CI pass.
+fail_under = 90
 
 [tool.ruff]
 line-length = 100

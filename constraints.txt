@@ -9,9 +9,11 @@
 # unpinned (this is a library; pinning them here would pin your environment).
 # Bump deliberately: change a line, run the gates, and fix or accept what moves.
 build==1.6.1
+coverage==7.17.4
 mypy==2.4.0
 mypy_extensions==1.1.0
 pytest==9.1.1
+pytest-cov==7.1.0
 respx==0.23.1
 ruff==0.17.0
 twine==7.0.0

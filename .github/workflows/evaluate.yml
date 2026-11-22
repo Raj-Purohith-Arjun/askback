@@ -95,8 +95,15 @@ jobs:
       - name: Types
         run: mypy src
       - name: Unit tests
+        if: matrix.python != '3.14'
         # Strict: a test module skipped for a missing extra is an error here.
         run: pytest --strict-env
+      - name: Unit tests with line coverage
+        # One leg only, the one the floor was measured on, so the number means one thing. The floor
+        # is `fail_under` in pyproject.toml; a drop below it fails this step. Line coverage, not
+        # branch coverage. Not in `addopts`: a local pytest stays fast.
+        if: matrix.python == '3.14'
+        run: pytest --strict-env --cov=askback --cov-report=term-missing:skip-covered
 
   wheel:
     name: a plain install works
