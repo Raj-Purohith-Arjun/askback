@@ -24,21 +24,38 @@ Rules for whoever is executing, human or model:
 1. **One step per commit**, conventional-commit style, with the `Co-Authored-By` trailer.
 2. **The gate runs before the commit, every time**: `ruff check src tests tools examples &&
    mypy src && pytest --strict-env`. A step that fails its own gate is not committed.
-3. **Status lives in this file.** Mark a step `[x]` in the index when its commit lands, with
-   the short sha. A plan whose status is in someone's head is not a plan.
+3. **Status lives in this file.** Mark a step `[x]` in the index when its commit lands *and its
+   Done-when has been observed*, with the short sha. A plan whose status is in someone's head is
+   not a plan. If the commit has landed but the Done-when cannot yet be observed, the step is
+   `[~]`, not `[x]` (rule 7).
 4. **A step that turns out to be wrong gets struck, with the reason** — not silently dropped.
    The reason is the most valuable line in the file.
 5. **Never relax an expectation to make a step pass** (invariant 9). If a step's change moves
    a verdict, measure how many moved, decide on the merits, and record the number.
 6. **Do not do two steps in one commit** because they are both small. The point of the
    sequence is that any one of them can be reverted alone.
+7. **`[~]` means: work landed, verification blocked externally.** The commit or commits are in,
+   the gate passed, and the step's Done-when cannot be observed until something outside the
+   repository happens (a registry accepting a publisher, a release being published, a third
+   party responding). The index line for a `[~]` step must carry the shas that landed *and* the
+   specific external event it is waiting on. Three limits, so the marker cannot become a place
+   to hide:
+   - `[~]` is never `[x]`. It becomes `[x]` only when the Done-when is observed, never on the
+     expectation that it will be. Unverified never passes (invariant 8, applied to the plan).
+   - It is not a parking state for a step whose gate failed. A failing gate means no commit
+     (rule 2), so there is nothing to mark.
+   - Later steps may proceed past a `[~]` step only if they do not depend on its Done-when.
+     If one does, say so on that step.
 
 ---
 
 ## Index
 
+Markers: `[ ]` not done · `[~]` work landed, verification blocked externally (rule 7) · `[x]`
+done and observed.
+
 Phase 0 — a stranger can install it
-- [ ] `0.1` Publish to PyPI through trusted publishing — **merged with 0.2 and done FIRST** (see 0.1)
+- [~] `0.1` Publish to PyPI through trusted publishing — **merged with 0.2 and done FIRST** (see 0.1). Landed in `179eb7d`, `a8772fd`. Waiting on: tag v0.1.0 pushed and a GitHub release published (which fires the pypi job in release.yml). The trusted publisher is registered and verified on pypi.org. Done-when (`pip install askback` from a fresh container) cannot be observed until the package exists on PyPI.
 - [ ] `0.2` Tag v0.1.0 and cut the release — **merged into 0.1**; one release, one pass
 - [ ] `0.3` Widen the Python matrix to what actually works
 - [ ] `0.4` Badges and repository metadata
@@ -97,7 +114,14 @@ Phase 5 — ecosystem
 of this assumes it works. The name is unclaimed as of this writing, which is a standing risk:
 names in this field go quickly.
 
-**Touches.** `.github/workflows/release.yml` (new), `pyproject.toml`, `CHANGELOG.md`.
+**Touches.** `.github/workflows/release.yml` (new), `pyproject.toml`, `CHANGELOG.md`,
+`MANIFEST.in`.
+
+**Scope correction, 2026-11-21.** `MANIFEST.in` was **added to Touches after the fact**. The
+original list omitted it, but the sdist decision below depends on it (`MANIFEST.in` is what
+prunes `tests/`), so the step was mis-scoped as written. It is corrected here, visibly, rather
+than silently; by this plan's own rule, a step that needs a file outside its list has been
+mis-scoped, and this one was.
 
 **Do.**
 - New workflow, triggered on a published release, with `permissions: id-token: write` and
@@ -167,7 +191,8 @@ CLAUDE.md, and they must move together.
 repository gets found by someone who did not come looking for it; a social preview image is
 most of the difference in how a shared link converts.
 
-**Touches.** `README.md`, repository settings (manual), `.github/` (image asset).
+**Touches.** `README.md`, `docs/ROADMAP.md` (the one-line wedge), repository settings (manual),
+`.github/` (image asset).
 
 **Do.**
 - Badges, under the title, that are all live checks: PyPI version, Python versions, CI status,
@@ -176,8 +201,12 @@ most of the difference in how a shared link converts.
   put a single-line version above it.
 - Topics: `llm-evaluation`, `agent-evaluation`, `conversational-ai`, `chatbot-testing`,
   `rag-evaluation`, `llm-testing`, `ci`, `python`, `llmops`, `red-teaming`, `multi-turn`.
-- Description: the wedge in one line (`docs/ROADMAP.md` has it), under 120 characters so it is
-  not truncated in search results.
+- Description: the wedge in one line, under 120 characters so it is not truncated in search
+  results. **That line does not exist yet.** `docs/ROADMAP.md` carries the wedge as a
+  two-sentence blockquote, not a one-liner, so write the line first, in this step, into
+  `docs/ROADMAP.md` beside the blockquote, and use that exact text for the repository
+  description, the single line above the badges, and the social preview image. One line, one
+  home; check its length with a command, not by eye.
 - A social preview image, 1280×640. Plain: name, the one-line wedge, a terminal fragment
   showing a real failure. Not a logo exercise.
 
