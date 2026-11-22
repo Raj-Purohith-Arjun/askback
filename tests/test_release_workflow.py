@@ -80,3 +80,9 @@ def test_the_sdist_is_checked_as_well_as_the_wheel(workflow: dict[str, Any]) -> 
     assert "tarfile" in commands and "askback_sim" in commands and "demo.yaml" in commands
     assert "wheel sdist" in commands, "both distributions must be installed and run"
     assert "twine check --strict" in commands
+    assert '"tests" in n.split' in commands, "the sdist must not ship a half test suite"
+
+
+def test_the_sdist_manifest_leaves_the_test_suite_out() -> None:
+    manifest = (WORKFLOW.parents[2] / "MANIFEST.in").read_text("utf-8").splitlines()
+    assert "prune tests" in manifest

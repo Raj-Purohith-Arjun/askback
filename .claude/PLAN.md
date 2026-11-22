@@ -38,8 +38,8 @@ Rules for whoever is executing, human or model:
 ## Index
 
 Phase 0 — a stranger can install it
-- [ ] `0.1` Publish to PyPI through trusted publishing
-- [ ] `0.2` Tag v0.1.0 and cut the release
+- [ ] `0.1` Publish to PyPI through trusted publishing — **merged with 0.2 and done FIRST** (see 0.1)
+- [ ] `0.2` Tag v0.1.0 and cut the release — **merged into 0.1**; one release, one pass
 - [ ] `0.3` Widen the Python matrix to what actually works
 - [ ] `0.4` Badges and repository metadata
 - [ ] `0.5` Issue and PR templates, CODEOWNERS
@@ -110,6 +110,17 @@ names in this field go quickly.
   not checked at all today; add it or state that the sdist is unsupported.
 - `pyproject.toml` has a `PLACEHOLDER` comment on `authors`. Resolve it before the first
   upload; metadata on PyPI is not editable after the fact.
+
+**Reordered, 2026-11-21.** 0.1 and 0.2 are merged and released *now*, before 0.3–0.8. Reason:
+the badges in 0.4 and the README rewrite in 0.8 both point at a package that has to be live, and
+a pending PyPI publisher does not reserve the name (PyPI says so), so the window between
+registering and publishing is a standing risk. The release is v0.1.0 as it stands: no version
+bump. 0.3–0.8 then ship as v0.1.1 or later, with a real install to point at.
+
+**Sdist contents** (decided in this step, frozen per version). The test suite is deliberately
+absent from the sdist: it tests the repository (examples, config, `.github`, the simulator), and
+with every test file included the extracted sdist failed at collection. `MANIFEST.in` prunes
+`tests/`; `release.yml` fails the build if a `tests/` path appears. Run the tests from a clone.
 
 **Done when.** In a fresh container with no checkout:
 `pip install askback && cd $(mktemp -d) && askback eval` exits 0.
@@ -212,6 +223,14 @@ when a dev tool moves.
 **Done when.** `tests/test_workflow.py` still passes with the new workflows present, the
 Scorecard badge is live, and Dependabot's first pull request is a sha bump with the comment
 updated.
+
+**Carried over from 0.1 (deliberately deferred, do not lose these).**
+- Pin `build` and `twine` in `release.yml`'s build job. They are installed unpinned today,
+  as in the pull-request `wheel` job; Dependabot can bump them once they are pinned (via
+  `constraints.txt` or a requirements file for the release job).
+- A pull-request sdist check. The sdist is checked in `release.yml` only; the PR `wheel` job in
+  `evaluate.yml` checks the wheel alone. Decided sufficient for v0.1.0. Revisit if a change breaks
+  the sdist and is caught only at release time.
 
 **Watch.** `tests/test_workflow.py` may assert over all files in `.github/workflows`. Read it
 before adding files; extend the assertion to the new ones rather than exempting them.

@@ -1,0 +1,14 @@
+# The sdist ships the package and not the test suite, on purpose.
+#
+# The suite tests this REPOSITORY, not just the installable package: nearly every module reads
+# examples/, config/, tools/, .github/, README.md or CLAUDE.md, or imports the HR simulator
+# (src/askback_sim). Measured: with every test file included, the extracted sdist fails at
+# collection (a missing config file) before a single test runs. Making it runnable would mean
+# shipping the simulator, the examples and CI files in the sdist as well, which contradicts
+# keeping the simulator out of what we publish. setuptools would otherwise pick up only
+# `tests/test*.py` and drop conftest.py and expected_tests.json: a suite that looks present and
+# cannot run is worse than one that is absent. Run the tests from a clone.
+#
+# The release workflow fails the build if a tests/ path appears in the sdist.
+prune tests
+global-exclude __pycache__ *.py[cod]

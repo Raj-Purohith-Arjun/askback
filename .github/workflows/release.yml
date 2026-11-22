@@ -92,7 +92,11 @@ jobs:
                   assert any(n.endswith(required) for n in names), f"{label}: {required} missing"
               leaked = [n for n in names if "askback_sim" in n.split("/")]
               assert not leaked, f"{label}: the simulator is in the distribution: {leaked[:3]}"
-              print(f"{label}: {len(names)} files, demo present, simulator absent")
+              # The suite is deliberately absent (MANIFEST.in says why). Any test file here is the
+              # half-suite setuptools includes by default, which looks runnable and is not.
+              tests = [n for n in names if "tests" in n.split("/")]
+              assert not tests, f"{label}: the test suite is partly shipped: {tests[:3]}"
+              print(f"{label}: {len(names)} files, demo present, simulator and tests absent")
           PY
 
       - name: Each distribution installs in a clean environment and runs the first command
