@@ -46,6 +46,11 @@ Rules for whoever is executing, human or model:
      (rule 2), so there is nothing to mark.
    - Later steps may proceed past a `[~]` step only if they do not depend on its Done-when.
      If one does, say so on that step.
+8. **A step's Touches includes the test that proves it.** A step that adds a gate, a floor, a
+   workflow or a check also owns the assertion that keeps it there; a floor nobody tests can be
+   deleted silently. Where a step's Touches omits `tests/`, treat that as an omission in the
+   list, write the test, and correct the list visibly rather than skipping it. Corrected this
+   way so far: 0.1 (`MANIFEST.in`), 0.3 (`docs/ROADMAP.md`), 0.7 (`tests/`).
 
 ---
 
@@ -319,15 +324,28 @@ at about 0.5. Line ratio is a proxy; measure the thing itself. A floor that only
 coverage into a ratchet instead of a debate.
 
 **Touches.** `pyproject.toml`, `.github/workflows/evaluate.yml`, `README.md`,
-`CONTRIBUTING.md`, `CLAUDE.md` §10.
+`CONTRIBUTING.md`, `CLAUDE.md` §10, `tests/`.
+
+**Scope correction (rule 8).** `tests/` was **added to Touches after the fact**: the floor, the
+3.14-only coverage step and the badge each need an assertion that keeps them there
+(`tests/test_workflow_files.py`).
 
 **Do.** `pytest-cov` in the `dev` extra, `--cov=askback` in CI only (not in `addopts`, so a
 local `pytest` stays fast), `fail_under` at the measured number rounded down, published as a
 badge. Then **name the three modules with the least coverage in `CONTRIBUTING.md`** as the
 standing good-first-issue list. Do not raise the floor and the coverage in one commit.
 
-**Done when.** CI fails on a drop, the badge is live, and §10's prose cites a measured
+**Done when.** The coverage step runs on the 3.14 leg in CI with its floor line in the log;
+`fail_under` is proven to gate, verified locally by raising it above the measured figure and
+seeing pytest fail; the README carries a coverage badge; and §10's prose cites a measured
 percentage rather than a line ratio.
+
+**Amended 2026-11-22, after the fact.** "The badge is live" meant a live percentage from a
+service such as Codecov. That needs a third-party account and a token in CI, against this
+repository's dependency and secrets posture. What shipped is a static badge stating the
+enforced floor, with `tests/test_workflow_files.py` failing if it drifts from `fail_under`.
+This is a goalpost moved after the work, recorded as such: a tested floor badge cannot lie,
+where a live number nobody reads can. Revisit if a coverage service is adopted anyway.
 
 ## 0.8 README: install first, clone second
 
