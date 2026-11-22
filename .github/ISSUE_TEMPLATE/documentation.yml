@@ -1,0 +1,36 @@
+name: Documentation
+description: Something in the docs is wrong, missing, or confusing.
+labels: [documentation]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The file or page, and the section.
+      placeholder: "README.md, 'Point it at YOUR agent'"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong
+      options:
+        - It is incorrect (the code does something else)
+        - It is missing
+        - It is confusing
+        - A command or example does not work
+        - A link is broken
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What you read, what you expected, and what you did. If a command failed, paste it and its output.
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: Optional. Wording you would use.

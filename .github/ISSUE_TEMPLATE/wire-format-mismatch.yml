@@ -1,0 +1,80 @@
+name: Wire-format mismatch
+description: askback cannot read your agent's replies, or cannot speak its transport.
+labels: [wire-format]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the most useful report you can send us.** askback has only ever been run
+        against stand-ins we wrote, so how real agents answer is exactly what we are missing.
+
+        Run the standalone probe against your agent. It imports nothing from this repository
+        and needs no credentials from us:
+
+        ```bash
+        python tools/probe_agent.py http://HOST:PORT/api/chat "a question the agent can answer"
+        # Socket.IO: add --socketio --namespace /chat
+        ```
+
+        It writes `probe-result.json`, a record of every event the server sent, by name.
+  - type: markdown
+    attributes:
+      value: |
+        > **Read `probe-result.json` before you attach it.** It contains the agent's own
+        > reply, which may be internal content, and the URL you probed. Remove anything you
+        > do not want public. If it cannot be shared, say so below and describe the shape of
+        > the reply instead.
+  - type: input
+    id: version
+    attributes:
+      label: askback version
+      description: The output of `askback --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport the agent speaks
+      options:
+        - HTTP, JSON request and JSON reply
+        - HTTP, streamed reply (SSE or chunked)
+        - Socket.IO
+        - Plain WebSocket
+        - Something else
+        - I don't know
+    validations:
+      required: true
+  - type: input
+    id: agent
+    attributes:
+      label: Which agent is it?
+      description: Name and version if it is a public project, or a short description if it is not.
+    validations:
+      required: true
+  - type: textarea
+    id: probe
+    attributes:
+      label: probe-result.json
+      description: Paste the contents (after reading and trimming them), or drag the file into this box.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: what-failed
+    attributes:
+      label: What askback did, and what you expected
+      description: The error text, or the field askback did not find (`text`, `status`, `route`, `citations`, `retrieved`, a session id).
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Your `agent:` config block (secrets removed)
+      render: yaml
+  - type: checkboxes
+    id: read
+    attributes:
+      label: Before you submit
+      options:
+        - label: I have read the probe result and removed anything I do not want public.
+          required: true

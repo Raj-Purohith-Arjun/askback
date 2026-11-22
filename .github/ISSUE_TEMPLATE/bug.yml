@@ -1,0 +1,60 @@
+name: Bug report
+description: askback did something it should not, or crashed.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. If the problem is that askback cannot read **your agent's replies** (a
+        mapping that finds nothing, a transport it cannot speak), use the *Wire-format
+        mismatch* form instead: it asks for the transcript that makes that report useful.
+  - type: input
+    id: version
+    attributes:
+      label: askback version
+      description: The output of `askback --version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version and OS
+      placeholder: "3.12.4, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: dropdown
+    id: adapter
+    attributes:
+      label: Adapter
+      options:
+        - http
+        - socketio
+        - python (your own AgentAdapter)
+        - built-in demo (no --config)
+        - not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Config excerpt
+      description: |
+        The part of your config that matters. **Remove secrets** (they should be `${VAR}`
+        references, never values) and anything internal you would not post publicly.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, what you saw (paste the output), and the exit code.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true

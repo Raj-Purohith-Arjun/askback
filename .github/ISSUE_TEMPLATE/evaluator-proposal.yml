@@ -1,0 +1,53 @@
+name: Evaluator proposal
+description: Propose a new check, or a change to one.
+labels: [evaluator-proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        askback's one rule for a check is that it must not be able to **say something false**.
+        A check that cannot see what it needs must say so; it may never pass. Please read
+        [CLAUDE.md §3](https://github.com/Raj-Purohith-Arjun/askback/blob/main/CLAUDE.md)
+        (invariants 1 and 8) and
+        [Writing an evaluator](https://github.com/Raj-Purohith-Arjun/askback/blob/main/docs/writing-an-evaluator.md)
+        first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What would the check catch?
+      description: The failure in an agent's behaviour, with one concrete example reply that should fail it.
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: What does it inspect?
+      description: The exact field or fields of the reply (text, status, route, citations, retrieved chunks, tool calls, session) it needs.
+    validations:
+      required: true
+  - type: textarea
+    id: absent
+    attributes:
+      label: What does the check report when its input is ABSENT?
+      description: |
+        The agent did not return the field, or a response mapping dropped it, or the list it
+        compares against is empty. **The answer must be `skipped` or `error`, with a message
+        that says what is missing. It must never be `pass`, and a default value must never
+        stand in for the missing input.** A proposal that answers "it passes", "it assumes
+        the safe value" or "it uses an empty default" will be sent back until it does not.
+        Say also what the test would look like: write the test where the input is absent first.
+      placeholder: "e.g. skipped: 'the reply carried no retrieved chunks'"
+    validations:
+      required: true
+  - type: textarea
+    id: severity
+    attributes:
+      label: Severity and false positives
+      description: Should a failure gate the build (critical)? What ordinary, correct reply would trip it?
+    validations:
+      required: true
+  - type: textarea
+    id: domain
+    attributes:
+      label: Does it assume anything about the domain?
+      description: Vocabulary, thresholds or document structure tuned to one kind of agent. docs/HR-COUPLING-AUDIT.md lists what we have already had to untangle.
