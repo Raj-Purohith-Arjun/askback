@@ -5,7 +5,7 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/). Until 1.0, a minor version may break a
 config key, an endpoint or a report field, and when it does the entry says so.
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-11-21
 
 The first release. It starts from a single package that held an HR-style agent and an
 evaluation harness that could only grade that agent in process, and ends with a
