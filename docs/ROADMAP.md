@@ -36,6 +36,11 @@ narrower and it should say so in one line:
 > `askback` tests a deployed agent you may not own, over the wire it actually speaks, across
 > several turns, as more than one user.**
 
+**Canonical one-liner** (the one home for this text; the README's first line, the repository
+description and the social preview image copy it exactly, and it stays under 120 characters):
+
+> Test a deployed conversational agent over its own transport, across several turns, as more than one user.
+
 Four things follow from that, and all four are either rare or absent elsewhere:
 
 1. **It answers back.** The agent asks "which order?" mid-test; the harness answers (scripted,

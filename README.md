@@ -1,5 +1,12 @@
 # askback
 
+Test a deployed conversational agent over its own transport, across several turns, as more than one user.
+
+[![PyPI version](https://img.shields.io/pypi/v/askback)](https://pypi.org/project/askback/)
+[![Python versions](https://img.shields.io/pypi/pyversions/askback)](https://pypi.org/project/askback/)
+[![CI](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml/badge.svg)](https://github.com/Raj-Purohith-Arjun/askback/actions/workflows/evaluate.yml)
+[![License](https://img.shields.io/github/license/Raj-Purohith-Arjun/askback)](LICENSE)
+
 **Test a conversational agent the way it is actually used: over several turns, against its
 own sources, as different users.** Ordinary API testing checks that an endpoint returns 200
 and a plausible string. It cannot tell you that the bot invented a policy and cited it, lost
