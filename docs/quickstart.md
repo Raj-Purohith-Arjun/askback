@@ -1,6 +1,6 @@
 # Quickstart
 
-Ten minutes, no account, no API key, no network beyond `pip install`. You will run a
+Ten minutes, no account, no API key, no network beyond `pip install` and one `git clone`. You will run a
 small test suite against a toy agent, watch it catch a real flaw, fix the flaw, and
 save a baseline.
 
@@ -9,20 +9,32 @@ only. It has one deliberate defect, so the first run is red.
 
 ## 1. Install
 
-From a clone of this repository, in a virtualenv:
+Python 3.11 or newer, ideally in a virtualenv:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -e ".[http]"
+pip install askback
+askback eval
 ```
 
-`http` is the extra that lets the framework talk to an agent over HTTP. Python 3.11 or
-newer. This installs an `askback` command; `python -m askback` does the same thing.
+That installs an `askback` command (`python -m askback` does the same thing) and grades a
+built-in demo agent against a small bundled suite. It needs no clone and no agent, and it
+passes. It is a self-check that the install works and means little: it says nothing about
+your agent.
+
+The toy agent below is *not* in the package, and it talks HTTP, so add the HTTP extra and get
+the repository's examples:
+
+```bash
+pip install "askback[http]"
+git clone https://github.com/Raj-Purohith-Arjun/askback
+cd askback
+```
+
+Every command below runs from that `askback` directory.
 
 ## 2. Start the toy agent
 
-In a **second terminal**, from the repository root:
+In a **second terminal**, from the `askback` directory:
 
 ```bash
 python examples/toy-agent/agent.py
@@ -37,7 +49,7 @@ It takes `POST /chat` with `{"query": "...", "session_id": "..."}` and answers
 
 ## 3. Run the suite
 
-Back in the first terminal, from the repository root:
+Back in the first terminal, from the `askback` directory:
 
 ```bash
 askback --config examples/toy-agent/config.yaml eval
@@ -130,6 +142,19 @@ it leaves a file you commit, so a change to what "good" means is a diff someone 
 - No judge model was involved. With none configured, the free, deterministic
   **heuristic judge** grades. A hosted judge is optional and metered; see
   [what it costs](cost.md).
+
+## Development: running from a clone
+
+To change askback itself, install the clone in editable mode instead of from PyPI, so the
+examples above run against your working copy:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[http]"
+```
+
+[CONTRIBUTING.md](../CONTRIBUTING.md) has the checks to run before a pull request.
 
 ## Next
 

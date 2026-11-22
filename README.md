@@ -73,11 +73,10 @@ less than the table at the top suggests.
 
 ## Quickstart (no agent needed)
 
-From a clone, in a virtualenv:
+Python 3.11 or newer, ideally in a virtualenv:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
-pip install -e ".[http]"
+pip install askback
 askback eval
 ```
 
@@ -91,14 +90,17 @@ self-check, not a test of your agent. Point it at yours with --config.
 PASSED: no critical checks failed.
 ```
 
-Exit `0`. It works from a plain `pip install` too: the demo agent and its suite ship in the
-package. Now see it **fail**. In one terminal, start a toy agent with a deliberate flaw:
+Exit `0`. The demo agent and its suite ship in the package, so that needed no clone and no agent.
+Now see it **fail**. The toy agent, with a deliberate flaw, lives in the repository (it is not in
+the package), so fetch it and add the HTTP extra. In one terminal:
 
 ```bash
+pip install "askback[http]"
+git clone https://github.com/Raj-Purohith-Arjun/askback && cd askback
 python examples/toy-agent/agent.py
 ```
 
-In another, grade it:
+In another, from the same `askback` directory, grade it:
 
 ```bash
 askback --config examples/toy-agent/config.yaml eval
@@ -110,7 +112,7 @@ goes on to save a baseline and catch a regression.
 
 ## Point it at YOUR agent
 
-1. **Install the transport you need.** `pip install -e ".[http]"` or `".[socketio]"`.
+1. **Install the transport you need.** `pip install "askback[http]"` or `"askback[socketio]"`.
 2. **Start from the template**, [`config/askback.example.yaml`](config/askback.example.yaml), and
    edit its `agent:` block. For HTTP:
 
@@ -429,8 +431,18 @@ docs/                quickstart, first suite, adapters, evaluators, calibration,
 
 ## Development
 
+Working on askback itself, or running the HR example (its simulator is not in the package), means
+running from a clone:
+
 ```bash
+git clone https://github.com/Raj-Purohith-Arjun/askback && cd askback
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[http]"                                 # enough to run the quickstart from source
+```
+
+To run the checks CI runs, install the dev tools instead:
+
+```bash
 pip install -c constraints.txt -e ".[all,dev]"
 ruff check src tests tools examples && mypy src && pytest --strict-env
 ```

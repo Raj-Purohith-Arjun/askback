@@ -1,7 +1,9 @@
 # Getting started
 
 A walk through the **dashboard and the HR example**. If you want to test your own agent, read
-[README.md](README.md) instead: you do not need anything on this page for that.
+[README.md](README.md) instead: `pip install askback` is all the install it needs, and you do not
+need anything on this page. This page is for a clone or an unzipped copy of the repository: the
+HR example and its simulator are not in the pip package.
 
 About 10 minutes, most of it waiting on the installer. You need no API key, no LLM, no database
 and no server: it runs entirely on your laptop.
